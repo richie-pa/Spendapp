@@ -85,11 +85,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
 
     const payerId = parseInt(payer);
 
-    const participants = customSplit
-      ? selectedMemberList
-      : forEveryone
-        ? activeMembers
-        : selectedMemberList;
+    const participants = selectedMemberList;
 
     if (participants.length === 0) {
       toast.error("Please select at least one participant");
@@ -156,7 +152,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       setWhat("");
       setComment("");
       setPayer("");
-      setForEveryone(true);
+      setForEveryone(false);
       setCustomSplit(false);
       setMemberAmounts({});
       setCategoryId(undefined);
@@ -394,18 +390,18 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2 rounded-[1.5rem] bg-slate-100 p-1">
-              <Button
-                type="button"
-                variant={!customSplit ? "default" : "ghost"}
-                className="h-12 rounded-[1.1rem] font-semibold"
-                onClick={() => {
-                  setCustomSplit(false);
-                  setForEveryone(true);
-                }}
-              >
-                <Equal className="mr-2 h-4 w-4" />
-                Equal
-              </Button>
+             <Button
+              type="button"
+              variant={!customSplit ? "default" : "ghost"}
+              className="h-12 rounded-[1.1rem] font-semibold"
+              onClick={() => {
+                setCustomSplit(false);
+                setForEveryone(false);
+              }}
+            >
+              <Equal className="mr-2 h-4 w-4" />
+              Equal
+            </Button>
 
               <Button
                 type="button"
