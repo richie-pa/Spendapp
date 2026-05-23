@@ -181,9 +181,24 @@ const handleSubmit = async (e: React.FormEvent) => {
 
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
+      const selectedMemberList = activeMembers.filter((m) =>
+      selectedMembers.has(m.id)
+    );
+
+    const totalAmount = parseFloat(amount || "0");
+
+    const customTotal = selectedMemberList.reduce(
+      (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+      0
+    );
+
+    const remaining = totalAmount - customTotal;
+
+    const equalShare =
+      selectedMemberList.length > 0 ? totalAmount / selectedMemberList.length : 0;
 
   return (
-    <div className="min-h-screen overflow-y-auto p-4 space-y-6 pb-40">
+    <div className="min-h-screen overflow-y-auto p-4 space-y-6 pb-28">
       <div>
         <h1 className="text-3xl font-bold">Add Bill</h1>
         <p className="text-muted-foreground">Record a new expense</p>
@@ -296,7 +311,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           <CardHeader>
             <CardTitle>Participants</CardTitle>
           </CardHeader>
-<CardContent className="space-y-4">
+          <CardContent className="space-y-4">
   <div className="rounded-2xl bg-muted p-1 grid grid-cols-2 gap-1">
     <Button
       type="button"
@@ -304,7 +319,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       className="rounded-xl"
       onClick={() => {
         setCustomSplit(false);
-        setForEveryone(true);
+        setForEveryone(false);
       }}
     >
       Equal
@@ -323,33 +338,52 @@ const handleSubmit = async (e: React.FormEvent) => {
     </Button>
   </div>
 
-  {!customSplit && (
-    <div className="flex items-center justify-between rounded-2xl border bg-background p-4">
-      <Label htmlFor="forEveryone" className="cursor-pointer">
-        Split between all active members
-      </Label>
+  {customSplit && (
+    <div
+      className={`rounded-2xl border p-4 ${
+        Math.abs(remaining) < 0.01
+          ? "bg-green-50 border-green-200 text-green-800"
+          : remaining > 0
+            ? "bg-orange-50 border-orange-200 text-orange-800"
+            : "bg-red-50 border-red-200 text-red-800"
+      }`}
+    >
+      <div className="flex justify-between text-sm">
+        <span>Assigned</span>
+        <strong>
+          {currencySymbol}
+          {customTotal.toFixed(2)}
+        </strong>
+      </div>
 
-      <Checkbox
-        id="forEveryone"
-        checked={forEveryone}
-        onCheckedChange={(checked) => setForEveryone(checked as boolean)}
-      />
+      <div className="flex justify-between text-sm mt-1">
+        <span>Remaining</span>
+        <strong>
+          {currencySymbol}
+          {remaining.toFixed(2)}
+        </strong>
+      </div>
     </div>
   )}
 
-  {(!forEveryone || customSplit) && (
-    <div className="space-y-3 pt-2">
-      {activeMembers.map((member) => {
-        const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
+  <div className="space-y-3 pt-2">
+    {activeMembers.map((member) => {
+      const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
+      const isSelected = selectedMembers.has(member.id);
 
-        return (
-          <div
-            key={member.id}
-            className="flex items-center gap-3 rounded-2xl border bg-background p-3"
-          >
+      return (
+        <div
+          key={member.id}
+          className={`rounded-2xl border p-3 transition ${
+            isSelected
+              ? "bg-background border-primary/30"
+              : "bg-muted/40 border-transparent opacity-60"
+          }`}
+        >
+          <div className="flex items-center gap-3">
             <Checkbox
               id={`member-${member.id}`}
-              checked={selectedMembers.has(member.id)}
+              checked={isSelected}
               onCheckedChange={() => toggleMember(member.id)}
             />
 
@@ -364,10 +398,19 @@ const handleSubmit = async (e: React.FormEvent) => {
                 {member.name.charAt(0).toUpperCase()}
               </div>
 
-              <span className="font-medium">{member.name}</span>
+              <div>
+                <div className="font-medium">{member.name}</div>
+
+                {!customSplit && isSelected && (
+                  <div className="text-xs text-muted-foreground">
+                    Equal share: {currencySymbol}
+                    {equalShare.toFixed(2)}
+                  </div>
+                )}
+              </div>
             </Label>
 
-            {customSplit && selectedMembers.has(member.id) && (
+            {customSplit && isSelected && (
               <div className="flex items-center gap-1">
                 <Input
                   type="number"
@@ -385,10 +428,10 @@ const handleSubmit = async (e: React.FormEvent) => {
               </div>
             )}
           </div>
-        );
-      })}
-    </div>
-  )}
+        </div>
+      );
+    })}
+  </div>
 </CardContent>
         </Card>
 
@@ -401,7 +444,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
         <Button
   type="submit"
-  className="w-full sticky bottom-24 z-20"
+  className="w-full mt-4 mb-8 rounded-2xl h-12"
   size="lg"
   disabled={submitting}
 >
