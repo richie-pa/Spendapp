@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
-import type { CospendLink, Project, Settlement } from "../types/cospend";
+import type { CospendLink, Project, Settlement, Statistics } from "../types/cospend";
 import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
 import { AlertCircle, Users, Receipt, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
@@ -14,6 +14,7 @@ interface DashboardScreenProps {
 export function DashboardScreen({ link }: DashboardScreenProps) {
   const [project, setProject] = useState<Project | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
+  const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -23,13 +24,15 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
     try {
       const api = new CospendApi(link);
-      const [projectData, settlementData] = await Promise.all([
+      const [projectData, settlementData, statsData] = await Promise.all([
         api.getProject(),
         api.getSettlement(),
+        api.getStatistics(),
       ]);
 
       setProject(projectData);
       setSettlement(settlementData);
+      setStats(statsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
@@ -68,9 +71,9 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
-  const totalSpent = project?.total_spent || 0;
-  const totalBills = project?.nb_bills || 0;
-  const balances = settlement?.balances || project?.balance || {};
+  const totalSpent = stats?.totalSpent || 0;
+  const totalBills = stats?.totalBills || 0;
+  const balances = stats?.balances || {};
 
   const getMemberName = (id: number) =>
     activeMembers.find((m) => m.id === id)?.name || `Member ${id}`;
@@ -93,7 +96,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         </Button>
       </div>
 
-      <Card className="rounded-3xl border-0 bg-gradient-to-br from-blue-600 to-sky-500 text-white shadow-[0_18px_50px_rgba(37,99,235,0.22)]">
+      <Card className="rounded-3xl border-0 shadow-lg bg-blue-600 text-white">
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
