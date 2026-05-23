@@ -32,12 +32,12 @@ export class CospendApi {
     const response = await fetch(this.getBaseUrl(), {
       headers: this.getHeaders(),
     });
-
+  
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Failed to get project: ${response.status} - ${error}`);
     }
-
+  
     const data = await response.json();
     return data.ocs?.data || data;
   }
@@ -60,14 +60,15 @@ export class CospendApi {
     const response = await fetch(`${this.getBaseUrl()}/bills`, {
       headers: this.getHeaders(),
     });
-
+  
     if (!response.ok) {
       const error = await response.text();
       throw new Error(`Failed to get bills: ${response.status} - ${error}`);
     }
-
+  
     const data = await response.json();
-    return data.ocs?.data || data;
+  
+    return data.ocs?.data?.bills || data.bills || [];
   }
 
   async getStatistics(): Promise<Statistics> {
