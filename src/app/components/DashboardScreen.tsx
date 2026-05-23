@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
-import type { CospendLink, Project, Settlement, Statistics } from "../types/cospend";
+import type {
+  CospendLink,
+  Project,
+  Settlement,
+  Bill,
+} from "../types/cospend";
+
 import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
 import { AlertCircle, Users, Receipt, RefreshCw, Wallet, ArrowUpRight, ArrowDownRight } from "lucide-react";
@@ -14,9 +20,9 @@ interface DashboardScreenProps {
 export function DashboardScreen({ link }: DashboardScreenProps) {
   const [project, setProject] = useState<Project | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
-  const [stats, setStats] = useState<Statistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [bills, setBills] = useState<Bill[]>([]);
 
   const loadData = async () => {
     setLoading(true);
@@ -24,15 +30,15 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
     try {
       const api = new CospendApi(link);
-      const [projectData, settlementData, statsData] = await Promise.all([
+      const [projectData, settlementData, billsData] = await Promise.all([
         api.getProject(),
         api.getSettlement(),
-        api.getStatistics(),
+        api.getBills(),
       ]);
 
       setProject(projectData);
       setSettlement(settlementData);
-      setStats(statsData);
+      setBills(billsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
@@ -74,6 +80,40 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
   const totalSpent = project?.total_spent || 0;
   const totalBills = project?.nb_bills || 0;
   const balances = settlement?.balances || project?.balance || {};
+  const sortedBills = [...bills].sort(
+  (a, b) => b.timestamp - a.timestamp
+);
+
+const recentBills = sortedBills.slice(0, 5);
+
+const biggestBill =
+  sortedBills.length > 0
+    ? sortedBills.reduce((max, b) =>
+        b.amount > max.amount ? b : max
+      )
+    : null;
+
+const averageExpense =
+  bills.length > 0
+    ? totalSpent / bills.length
+    : 0;
+
+const spendingByMonth = bills.reduce((acc, bill) => {
+  const date = new Date(bill.timestamp * 1000);
+
+  const key = date.toLocaleDateString("en-US", {
+    month: "short",
+    year: "numeric",
+  });
+
+  acc[key] = (acc[key] || 0) + bill.amount;
+
+  return acc;
+}, {} as Record<string, number>);
+
+const topMonth = Object.entries(spendingByMonth).sort(
+  (a, b) => Number(b[1]) - Number(a[1])
+)[0];
 
   const billsStart = project?.date_begin || null;
   const billsEnd = project?.date_end || null;
@@ -137,12 +177,88 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
   </CardContent>
 </Card>
 
-      <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
-        <CardContent className="p-5">
-          <p className="text-sm text-slate-500">Time period</p>
-          <p className="text-xl font-bold text-slate-900">{timeRange}</p>
-        </CardContent>
-      </Card>
+<Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+  <CardContent className="space-y-4 p-5">
+    <div className="flex items-center justify-between">
+      <h2 className="text-xl font-bold tracking-tight text-slate-900">
+        Spending Insights
+      </h2>
+
+      <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
+        Analytics
+      </span>
+    </div>
+
+    <div className="grid grid-cols-2 gap-3">
+      <div className="rounded-3xl bg-slate-50 p-4">
+        <p className="text-sm text-slate-500">
+          Average expense
+        </p>
+
+        <p className="mt-1 text-2xl font-bold text-slate-900">
+          {currencySymbol}
+          {averageExpense.toFixed(2)}
+        </p>
+      </div>
+
+      <div className="rounded-3xl bg-slate-50 p-4">
+        <p className="text-sm text-slate-500">
+          Biggest bill
+        </p>
+
+        <p className="mt-1 text-2xl font-bold text-slate-900">
+          {currencySymbol}
+          {biggestBill?.amount?.toFixed(2) || "0"}
+        </p>
+      </div>
+    </div>
+
+    {topMonth && (
+      <div className="rounded-3xl bg-blue-50 p-4">
+        <p className="text-sm text-blue-600">
+          Highest spending month
+        </p>
+
+        <p className="mt-1 text-xl font-bold text-blue-900">
+          {topMonth[0]}
+        </p>
+
+        <p className="text-blue-700">
+          {currencySymbol}
+          {Number(topMonth[1]).toFixed(2)}
+        </p>
+      </div>
+    )}
+
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">
+        Recent Activity
+      </h3>
+
+      {recentBills.map((bill) => (
+        <div
+          key={bill.id}
+          className="flex items-center justify-between rounded-2xl bg-slate-50 p-3"
+        >
+          <div>
+            <p className="font-medium text-slate-900">
+              {bill.what}
+            </p>
+
+            <p className="text-xs text-slate-500">
+              {new Date(bill.timestamp * 1000).toLocaleDateString()}
+            </p>
+          </div>
+
+          <span className="font-bold text-slate-900">
+            {currencySymbol}
+            {bill.amount.toFixed(2)}
+          </span>
+        </div>
+      ))}
+    </div>
+  </CardContent>
+</Card>
 
       <div className="grid grid-cols-2 gap-3">
         <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
