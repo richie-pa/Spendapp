@@ -71,9 +71,17 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
-  const totalSpent = stats?.totalSpent || 0;
-  const totalBills = stats?.totalBills || 0;
-  const balances = stats?.balances || {};
+  const totalSpent = project?.total_spent || 0;
+  const totalBills = project?.nb_bills || 0;
+  const balances = settlement?.balances || project?.balance || {};
+
+  const billsStart = project?.date_begin || null;
+  const billsEnd = project?.date_end || null;
+
+  const timeRange =
+    billsStart && billsEnd
+      ? `${billsStart} → ${billsEnd}`
+      : "All time";
 
   const getMemberName = (id: number) =>
     activeMembers.find((m) => m.id === id)?.name || `Member ${id}`;
@@ -96,30 +104,43 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         </Button>
       </div>
 
-      <Card className="rounded-3xl border-0 shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
-        <CardContent className="p-6">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
-              <Wallet className="h-6 w-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-sm opacity-80">Total spent</p>
-              <div className="text-4xl font-bold tracking-tight">
-                {currencySymbol}
-                {totalSpent.toFixed(2)}
-              </div>
-              <div className="mt-2 flex items-center gap-2 text-xs text-white/80">
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
-                  <Receipt className="h-3.5 w-3.5" />
-                  {totalBills} bills
-                </span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
-                  <Users className="h-3.5 w-3.5" />
-                  {activeMembers.length} people
-                </span>
-              </div>
-            </div>
-          </div>
+<Card className="rounded-3xl border-0 shadow-lg overflow-hidden">
+  <CardContent className="p-6 bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+    <div className="flex items-center gap-3">
+      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+        <Wallet className="h-6 w-6 text-white" />
+      </div>
+
+      <div className="min-w-0 flex-1">
+        <p className="text-sm text-white/80">
+          Total spent
+        </p>
+
+        <div className="text-4xl font-bold tracking-tight text-white">
+          {currencySymbol}
+          {totalSpent.toFixed(2)}
+        </div>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/80">
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+            <Receipt className="h-3.5 w-3.5" />
+            {totalBills} bills
+          </span>
+
+          <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
+            <Users className="h-3.5 w-3.5" />
+            {activeMembers.length} people
+          </span>
+        </div>
+      </div>
+    </div>
+  </CardContent>
+</Card>
+
+      <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
+        <CardContent className="p-5">
+          <p className="text-sm text-slate-500">Time period</p>
+          <p className="text-xl font-bold text-slate-900">{timeRange}</p>
         </CardContent>
       </Card>
 
