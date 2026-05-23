@@ -296,80 +296,100 @@ const handleSubmit = async (e: React.FormEvent) => {
           <CardHeader>
             <CardTitle>Participants</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-      <Button
-          type="button"
-          variant={!customSplit ? "default" : "outline"}
-          onClick={() => setCustomSplit(false)}
-        >
-          <Equal className="h-4 w-4 mr-2" />
-          Equal
-        </Button>
+<CardContent className="space-y-4">
+  <div className="rounded-2xl bg-muted p-1 grid grid-cols-2 gap-1">
+    <Button
+      type="button"
+      variant={!customSplit ? "default" : "ghost"}
+      className="rounded-xl"
+      onClick={() => {
+        setCustomSplit(false);
+        setForEveryone(true);
+      }}
+    >
+      Equal
+    </Button>
 
-        <Button
-          type="button"
-          variant={customSplit ? "default" : "outline"}
-          onClick={() => setCustomSplit(true)}
-        >
-          <SlidersHorizontal className="h-4 w-4 mr-2" />
-          Custom
-        </Button>
-      </div>
+    <Button
+      type="button"
+      variant={customSplit ? "default" : "ghost"}
+      className="rounded-xl"
+      onClick={() => {
+        setCustomSplit(true);
+        setForEveryone(false);
+      }}
+    >
+      Custom
+    </Button>
+  </div>
 
+  {!customSplit && (
+    <div className="flex items-center justify-between rounded-2xl border bg-background p-4">
+      <Label htmlFor="forEveryone" className="cursor-pointer">
+        Split between all active members
+      </Label>
 
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="forEveryone"
-                checked={forEveryone}
-                onCheckedChange={(checked) => setForEveryone(checked as boolean)}
-              />
-              <Label htmlFor="forEveryone" className="cursor-pointer">
-                Split between all active members
-              </Label>
-            </div>
+      <Checkbox
+        id="forEveryone"
+        checked={forEveryone}
+        onCheckedChange={(checked) => setForEveryone(checked as boolean)}
+      />
+    </div>
+  )}
 
-            {!forEveryone && (
-              <div className="space-y-3 pt-2">
-                {activeMembers.map((member) => {
-                  const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
-                  return (
-                    <div key={member.id} className="flex items-center space-x-3">
-                      <Checkbox
-                        id={`member-${member.id}`}
-                        checked={selectedMembers.has(member.id)}
-                        onCheckedChange={() => toggleMember(member.id)}
-                      />
-                      <Label
-                        htmlFor={`member-${member.id}`}
-                        className="flex items-center gap-2 cursor-pointer flex-1"
-                      >
-                        <div
-                          className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                          style={{ backgroundColor: color }}
-                        >
-                          {member.name.charAt(0).toUpperCase()}
-                        </div>
-                        <span>{member.name}</span>
-                        {customSplit && (
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0"
-                          value={memberAmounts[member.id] || ""}
-                          onChange={(e) =>
-                            updateMemberAmount(member.id, e.target.value)
-                          }
-                          className="w-24 ml-auto"
-                        />
-                      )}
-                      </Label>
-                    </div>
-                  );
-                })}
+  {(!forEveryone || customSplit) && (
+    <div className="space-y-3 pt-2">
+      {activeMembers.map((member) => {
+        const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
+
+        return (
+          <div
+            key={member.id}
+            className="flex items-center gap-3 rounded-2xl border bg-background p-3"
+          >
+            <Checkbox
+              id={`member-${member.id}`}
+              checked={selectedMembers.has(member.id)}
+              onCheckedChange={() => toggleMember(member.id)}
+            />
+
+            <Label
+              htmlFor={`member-${member.id}`}
+              className="flex items-center gap-3 cursor-pointer flex-1"
+            >
+              <div
+                className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
+                style={{ backgroundColor: color }}
+              >
+                {member.name.charAt(0).toUpperCase()}
+              </div>
+
+              <span className="font-medium">{member.name}</span>
+            </Label>
+
+            {customSplit && selectedMembers.has(member.id) && (
+              <div className="flex items-center gap-1">
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="0"
+                  value={memberAmounts[member.id] || ""}
+                  onChange={(e) =>
+                    updateMemberAmount(member.id, e.target.value)
+                  }
+                  className="w-24 text-right"
+                />
+                <span className="text-sm text-muted-foreground">
+                  {currencySymbol}
+                </span>
               </div>
             )}
-          </CardContent>
+          </div>
+        );
+      })}
+    </div>
+  )}
+</CardContent>
         </Card>
 
         {error && (
