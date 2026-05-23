@@ -132,7 +132,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const currencySymbol = project?.currencyname || "€";
 
   return (
-    <div className="p-4 space-y-6 pb-24">
+    <div className="min-h-screen overflow-y-auto p-4 space-y-6 pb-40">
       <div>
         <h1 className="text-3xl font-bold">Add Bill</h1>
         <p className="text-muted-foreground">Record a new expense</p>
@@ -295,7 +295,12 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
           </Alert>
         )}
 
-        <Button type="submit" className="w-full" size="lg" disabled={submitting}>
+        <Button
+  type="submit"
+  className="w-full sticky bottom-24 z-20"
+  size="lg"
+  disabled={submitting}
+>
           {submitting ? "Adding Bill..." : "Add Bill"}
         </Button>
       </form>
