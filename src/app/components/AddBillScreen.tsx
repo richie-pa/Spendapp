@@ -33,6 +33,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const [paymentModeId, setPaymentModeId] = useState<number | undefined>();
   const [customSplit, setCustomSplit] = useState(false);
   const [memberAmounts, setMemberAmounts] = useState<Record<number, string>>({});
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   useEffect(() => {
     loadProject();
@@ -198,7 +199,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   }
 
   return (
-    <div className="min-h-dvh overflow-y-auto px-4 pt-5 pb-[calc(11rem+env(safe-area-inset-bottom))] space-y-5">
+    <div className="min-h-dvh overflow-y-auto bg-slate-50 px-4 pt-5 pb-28 space-y-5">
       <div className="space-y-1">
         <p className="text-sm font-semibold text-blue-600">New expense</p>
         <h1 className="text-3xl font-bold tracking-tight">Add Bill</h1>
@@ -206,7 +207,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+        <Card className="rounded-3xl border-0 bg-white shadow-sm">
           <CardHeader className="space-y-1 pb-3">
             <CardTitle className="text-xl">Bill details</CardTitle>
             <p className="text-sm text-muted-foreground">Add the amount, description and optional tags.</p>
@@ -223,7 +224,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
                 onChange={(e) => setAmount(e.target.value)}
                 required
                 inputMode="decimal"
-                className="h-12 rounded-2xl bg-white text-lg"
+                className="h-12 rounded-2xl bg-white"
               />
             </div>
 
@@ -248,14 +249,14 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
                 rows={3}
-                className="resize-none rounded-2xl bg-white"
+                className="h-12 rounded-2xl bg-white resize-none min-h-24"
               />
             </div>
 
             <div className="space-y-2">
               <Label htmlFor="payer">Who paid?</Label>
               <Select value={payer} onValueChange={setPayer}>
-                <SelectTrigger id="payer" className="h-12 rounded-2xl border-slate-200 bg-white">
+                <SelectTrigger id="payer" className="h-12 rounded-2xl bg-white">
                   <SelectValue placeholder="Select payer" />
                 </SelectTrigger>
                 <SelectContent>
@@ -268,14 +269,27 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
               </Select>
             </div>
 
-            {project?.categories && project.categories.length > 0 && (
+            <Button
+                type="button"
+                variant="ghost"
+                className="w-full rounded-2xl justify-between bg-slate-50"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+              >
+                Advanced options
+                <span>{showAdvanced ? "−" : "+"}</span>
+              </Button>
+
+              {showAdvanced && (
+                <div className="space-y-4 rounded-3xl bg-slate-50 p-4">
+                  {/* Category goes here */}
+{project?.categories && project.categories.length > 0 && (
               <div className="space-y-2">
                 <Label htmlFor="category">Category <span className="text-muted-foreground">(optional)</span></Label>
                 <Select
                   value={categoryId?.toString()}
                   onValueChange={(v) => setCategoryId(parseInt(v))}
                 >
-                  <SelectTrigger id="category" className="h-12 rounded-2xl border-slate-200 bg-white">
+                  <SelectTrigger id="category" className="h-12 rounded-2xl bg-white">
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
@@ -297,7 +311,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
                   value={paymentModeId?.toString()}
                   onValueChange={(v) => setPaymentModeId(parseInt(v))}
                 >
-                  <SelectTrigger id="paymentMode" className="h-12 rounded-2xl border-slate-200 bg-white">
+                  <SelectTrigger id="paymentMode" className="h-12 rounded-2xl bg-white">
                     <SelectValue placeholder="Select payment mode" />
                   </SelectTrigger>
                   <SelectContent>
@@ -310,10 +324,15 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
                 </Select>
               </div>
             )}
+                  {/* Payment method goes here */}
+                </div>
+              )}
+
+            
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+        <Card className="rounded-3xl border-0 bg-white shadow-sm">
           <CardHeader className="space-y-1 pb-3">
             <CardTitle className="text-xl">Participants</CardTitle>
             <p className="text-sm text-muted-foreground">Choose equal or custom split, then tap the people involved.</p>
