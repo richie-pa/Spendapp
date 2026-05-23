@@ -1,3 +1,5 @@
+import { CapacitorHttp } from "@capacitor/core";
+
 import type {
   CospendLink,
   Project,
@@ -20,137 +22,101 @@ export class CospendApi {
     return `https://${host}/ocs/v2.php/apps/cospend/api/v1/public/projects/${token}/${password}`;
   }
 
-  private getHeaders(): HeadersInit {
+  private getHeaders(): Record<string, string> {
     return {
       Accept: "application/json",
-      "Content-Type": "application/json",
       "OCS-APIRequest": "true",
     };
   }
 
-    async getProject(): Promise<Project> {
-      const response = await fetch(this.getBaseUrl(), {
-        headers: this.getHeaders(),
-      });
-
-      if (!response.ok) {
-        const error = await response.text();
-        throw new Error(`Failed to get project: ${response.status} - ${error}`);
-      }
-
-      const data = await response.json();
-
-      const project = data.ocs?.data || data;
-
-      return {
-        ...project,
-
-        members: Array.isArray(project.members)
-          ? project.members
-          : Object.values(project.members || {}),
-
-        categories: Array.isArray(project.categories)
-          ? project.categories
-          : Object.values(project.categories || {}),
-
-        paymentmodes: Array.isArray(project.paymentmodes)
-          ? project.paymentmodes
-          : Object.values(project.paymentmodes || {}),
-      };
-    }
-
-  async getMembers(): Promise<Member[]> {
-    const response = await fetch(`${this.getBaseUrl()}/members`, {
+  async getProject(): Promise<Project> {
+    const response = await CapacitorHttp.get({
+      url: this.getBaseUrl(),
       headers: this.getHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get members: ${response.status} - ${error}`);
-    }
+    const data = response.data;
+    const project = data.ocs?.data || data;
 
-    const data = await response.json();
+    return {
+      ...project,
+      members: Array.isArray(project.members)
+        ? project.members
+        : Object.values(project.members || {}),
+      categories: Array.isArray(project.categories)
+        ? project.categories
+        : Object.values(project.categories || {}),
+      paymentmodes: Array.isArray(project.paymentmodes)
+        ? project.paymentmodes
+        : Object.values(project.paymentmodes || {}),
+    };
+  }
+
+  async getMembers(): Promise<Member[]> {
+    const response = await CapacitorHttp.get({
+      url: `${this.getBaseUrl()}/members`,
+      headers: this.getHeaders(),
+    });
+
+    const data = response.data;
     return data.ocs?.data || data;
   }
 
   async getBills(): Promise<Bill[]> {
-    const response = await fetch(`${this.getBaseUrl()}/bills`, {
+    const response = await CapacitorHttp.get({
+      url: `${this.getBaseUrl()}/bills`,
       headers: this.getHeaders(),
     });
-  
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get bills: ${response.status} - ${error}`);
-    }
-  
-    const data = await response.json();
-  
+
+    const data = response.data;
     return data.ocs?.data?.bills || data.bills || [];
   }
 
   async getStatistics(): Promise<Statistics> {
-    const response = await fetch(`${this.getBaseUrl()}/statistics`, {
+    const response = await CapacitorHttp.get({
+      url: `${this.getBaseUrl()}/statistics`,
       headers: this.getHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(
-        `Failed to get statistics: ${response.status} - ${error}`
-      );
-    }
-
-    const data = await response.json();
+    const data = response.data;
     return data.ocs?.data || data;
   }
 
   async getSettlement(): Promise<Settlement> {
-    const response = await fetch(`${this.getBaseUrl()}/settlement`, {
+    const response = await CapacitorHttp.get({
+      url: `${this.getBaseUrl()}/settlement`,
       headers: this.getHeaders(),
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(
-        `Failed to get settlement: ${response.status} - ${error}`
-      );
-    }
-
-    const data = await response.json();
+    const data = response.data;
     return data.ocs?.data || data;
   }
 
   async createBill(payload: CreateBillPayload): Promise<Bill> {
-    const response = await fetch(`${this.getBaseUrl()}/bills`, {
-      method: "POST",
-      headers: this.getHeaders(),
-      body: JSON.stringify(payload),
+    const response = await CapacitorHttp.post({
+      url: `${this.getBaseUrl()}/bills`,
+      headers: {
+        ...this.getHeaders(),
+        "Content-Type": "application/json",
+      },
+      data: payload,
     });
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to create bill: ${response.status} - ${error}`);
-    }
-
-    const data = await response.json();
+    const data = response.data;
     return data.ocs?.data || data;
   }
 
   async deleteBill(billId: number): Promise<void> {
-    const response = await fetch(`${this.getBaseUrl()}/bills/${billId}`, {
-      method: "DELETE",
+    await CapacitorHttp.delete({
+      url: `${this.getBaseUrl()}/bills/${billId}`,
       headers: this.getHeaders(),
     });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to delete bill: ${response.status} - ${error}`);
-    }
   }
 
   static parseCospendLink(link: string): CospendLink {
-    // Handle cospend://host/token/password format
-    const match = link.match(/^cospend:\/\/([^/]+)\/([^/]+)\/([^/]+)$/);
+    const cleaned = link.trim().replace(/\s+/g, "");
+
+    const match = cleaned.match(/^cospend:\/\/([^/]+)\/([^/]+)\/([^/]+)$/);
 
     if (!match) {
       throw new Error(
