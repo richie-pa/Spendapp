@@ -397,6 +397,8 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
               onClick={() => {
                 setCustomSplit(false);
                 setForEveryone(false);
+                setMemberAmounts({});
+
               }}
             >
               <Equal className="mr-2 h-4 w-4" />
@@ -417,25 +419,35 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
               </Button>
             </div>
 
-            <div className={`rounded-3xl border p-4 shadow-sm transition-all duration-200 ${customSplit ? splitStateTone : "border-slate-200 bg-slate-50 text-slate-700"}`}>
-              <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">Assigned</span>
-                <strong>
-                  {currencySymbol}{customTotal.toFixed(2)}
-                </strong>
-              </div>
-              <div className="mt-2 flex items-center justify-between text-sm">
-                <span className="font-medium">Remaining</span>
-                <strong>
-                  {currencySymbol}{remaining.toFixed(2)}
-                </strong>
-              </div>
-              {!customSplit && (
-                <p className="mt-3 text-xs text-slate-500">
-                  Equal split preview: {currencySymbol}{equalShare.toFixed(2)} per selected person.
-                </p>
-              )}
-            </div>
+            {customSplit ? (
+  <div className={`rounded-3xl border p-4 shadow-sm transition-all duration-200 ${splitStateTone}`}>
+    <div className="flex items-center justify-between text-sm">
+      <span className="font-medium">Assigned</span>
+      <strong>
+        {currencySymbol}{customTotal.toFixed(2)}
+      </strong>
+    </div>
+
+    <div className="mt-2 flex items-center justify-between text-sm">
+      <span className="font-medium">Remaining</span>
+      <strong>
+        {currencySymbol}{remaining.toFixed(2)}
+      </strong>
+    </div>
+  </div>
+) : (
+  <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-700">
+    <p className="text-sm font-medium">
+      Equal split preview
+    </p>
+    <p className="mt-1 text-xl font-bold">
+      {currencySymbol}{equalShare.toFixed(2)}
+      <span className="ml-1 text-sm font-normal text-slate-500">
+        per selected person
+      </span>
+    </p>
+  </div>
+)}
 
             <div className="space-y-3 pt-1">
               {activeMembers.map((member) => {
