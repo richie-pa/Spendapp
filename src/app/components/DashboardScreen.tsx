@@ -96,7 +96,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         </Button>
       </div>
 
-      <Card className="rounded-3xl border-0 shadow-lg bg-blue-600 text-white">
+      <Card className="rounded-3xl border-0 shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
         <CardContent className="p-6">
           <div className="flex items-center gap-3">
             <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
