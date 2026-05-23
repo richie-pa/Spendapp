@@ -24,8 +24,8 @@ export function BottomNav({ currentScreen, onScreenChange }: BottomNavProps) {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-background border-t border-border z-50">
-      <div className="flex items-center justify-around h-16 max-w-lg mx-auto px-2">
+    <nav className="fixed inset-x-0 bottom-0 z-50 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex max-w-lg items-center gap-1 rounded-[28px] border border-white/70 bg-white/85 px-2 py-2 shadow-[0_18px_50px_rgba(15,23,42,0.12)] backdrop-blur-xl">
         {navItems.map(({ screen, icon: Icon, label }) => {
           const isActive = currentScreen === screen;
           return (
@@ -33,14 +33,14 @@ export function BottomNav({ currentScreen, onScreenChange }: BottomNavProps) {
               key={screen}
               onClick={() => onScreenChange(screen)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors min-w-[64px]",
+                "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-2 py-2.5 transition-all duration-200 active:scale-95",
                 isActive
-                  ? "text-primary bg-primary/10"
-                  : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                  ? "bg-blue-600 text-white shadow-lg shadow-blue-600/25"
+                  : "text-slate-500 hover:bg-slate-100 hover:text-slate-900"
               )}
             >
-              <Icon className={cn("h-6 w-6", screen === "add-bill" && "h-7 w-7")} />
-              <span className="text-xs font-medium">{label}</span>
+              <Icon className={cn("h-5 w-5", screen === "add-bill" && "h-6 w-6")} />
+              <span className="text-[11px] font-medium leading-none">{label}</span>
             </button>
           );
         })}

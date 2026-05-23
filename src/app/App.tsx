@@ -48,9 +48,9 @@ export default function App() {
   }
 
   return (
-    <div className="size-full bg-background">
-      <div className="fixed top-0 left-0 right-0 h-14 bg-background/80 backdrop-blur-sm border-b border-border z-40 flex items-center justify-between px-4">
-        <h1 className="font-bold text-lg">Cospend</h1>
+    <div className="min-h-dvh overflow-x-hidden bg-gradient-to-b from-blue-50 to-slate-50 text-slate-900">
+      <div className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-white/70 bg-white/75 px-4 backdrop-blur-xl">
+        <h1 className="text-lg font-semibold tracking-tight">Cospend</h1>
         {currentScreen !== "settings" && (
           <Button
             variant="ghost"
@@ -62,7 +62,7 @@ export default function App() {
         )}
       </div>
 
-      <div className="pt-14">
+      <main className="pt-14">
         {currentScreen === "dashboard" && <DashboardScreen link={link} />}
         {currentScreen === "members" && <MembersScreen link={link} />}
         {currentScreen === "bills" && <BillsScreen link={link} />}
@@ -73,7 +73,7 @@ export default function App() {
         {currentScreen === "settings" && (
           <SettingsScreen onLogout={handleLogout} />
         )}
-      </div>
+      </main>
 
       <BottomNav currentScreen={currentScreen} onScreenChange={setCurrentScreen} />
       <Toaster />

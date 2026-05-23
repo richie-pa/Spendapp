@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
-import type { CospendLink, Member, Project, Category, PaymentMode } from "../types/cospend";
+import type { CospendLink, Member, Project } from "../types/cospend";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Label } from "./ui/label";
@@ -8,7 +8,7 @@ import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
-import { AlertCircle, Equal, SlidersHorizontal } from "lucide-react";
+import { AlertCircle, Equal, SlidersHorizontal, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { toast } from "sonner";
 
@@ -38,6 +38,24 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
     loadProject();
   }, []);
 
+  const activeMembers = project?.members?.filter((m) => m.activated) || [];
+  const currencySymbol = project?.currencyname || "€";
+  const selectedMemberList = activeMembers.filter((m) => selectedMembers.has(m.id));
+  const totalAmount = parseFloat(amount || "0");
+  const customTotal = selectedMemberList.reduce(
+    (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+    0
+  );
+  const remaining = totalAmount - customTotal;
+  const equalShare =
+    selectedMemberList.length > 0 ? totalAmount / selectedMemberList.length : 0;
+  const splitStateTone =
+    Math.abs(remaining) < 0.01
+      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+      : remaining > 0
+        ? "border-amber-200 bg-amber-50 text-amber-700"
+        : "border-rose-200 bg-rose-50 text-rose-700";
+
   const loadProject = async () => {
     setLoading(true);
     setError("");
@@ -56,56 +74,72 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
     }
   };
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-  if (!payer) {
-    toast.error("Please select who paid");
-    return;
-  }
+    if (!payer) {
+      toast.error("Please select who paid");
+      return;
+    }
 
-  const payerId = parseInt(payer);
+    const payerId = parseInt(payer);
 
-  const participants = customSplit
-    ? activeMembers.filter((m) => selectedMembers.has(m.id))
-    : forEveryone
-      ? activeMembers
-      : activeMembers.filter((m) => selectedMembers.has(m.id));
+    const participants = customSplit
+      ? selectedMemberList
+      : forEveryone
+        ? activeMembers
+        : selectedMemberList;
 
-  if (participants.length === 0) {
-    toast.error("Please select at least one participant");
-    return;
-  }
+    if (participants.length === 0) {
+      toast.error("Please select at least one participant");
+      return;
+    }
 
-  setSubmitting(true);
-  setError("");
+    setSubmitting(true);
+    setError("");
 
-  try {
-    const api = new CospendApi(link);
+    try {
+      const api = new CospendApi(link);
 
-    if (customSplit) {
-      const expected = parseFloat(amount);
-      const totalCustom = participants.reduce(
-        (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
-        0
-      );
+      if (customSplit) {
+        const expected = parseFloat(amount);
+        const totalCustom = participants.reduce(
+          (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+          0
+        );
 
-      if (Math.abs(totalCustom - expected) > 0.01) {
-        toast.error("Custom split must equal total amount");
-        setSubmitting(false);
-        return;
-      }
+        if (Math.abs(totalCustom - expected) > 0.01) {
+          toast.error("Custom split must equal total amount");
+          setSubmitting(false);
+          return;
+        }
 
-      for (const member of participants) {
-        const share = parseFloat(memberAmounts[member.id] || "0");
-        if (share <= 0) continue;
+        for (const member of participants) {
+          const share = parseFloat(memberAmounts[member.id] || "0");
+          if (share <= 0) continue;
 
+          await api.createBill({
+            amount: share,
+            what: `${what} - ${member.name}`,
+            comment,
+            payer: payerId,
+            payedFor: member.id.toString(),
+            categoryId: categoryId || 0,
+            paymentModeId: paymentModeId || 0,
+            repeat: "n",
+            repeatAllActive: 0,
+            repeatFreq: 1,
+            repeatUntil: null,
+            timestamp: Math.floor(Date.now() / 1000),
+          });
+        }
+      } else {
         await api.createBill({
-          amount: share,
-          what: `${what} - ${member.name}`,
+          amount: parseFloat(amount),
+          what,
           comment,
           payer: payerId,
-          payedFor: member.id.toString(),
+          payedFor: participants.map((m) => m.id).join(","),
           categoryId: categoryId || 0,
           paymentModeId: paymentModeId || 0,
           repeat: "n",
@@ -115,40 +149,24 @@ const handleSubmit = async (e: React.FormEvent) => {
           timestamp: Math.floor(Date.now() / 1000),
         });
       }
-    } else {
-      await api.createBill({
-        amount: parseFloat(amount),
-        what,
-        comment,
-        payer: payerId,
-        payedFor: participants.map((m) => m.id).join(","),
-        categoryId: categoryId || 0,
-        paymentModeId: paymentModeId || 0,
-        repeat: "n",
-        repeatAllActive: 0,
-        repeatFreq: 1,
-        repeatUntil: null,
-        timestamp: Math.floor(Date.now() / 1000),
-      });
-    }
 
-    toast.success("Bill added successfully!");
-    setAmount("");
-    setWhat("");
-    setComment("");
-    setPayer("");
-    setForEveryone(true);
-    setCustomSplit(false);
-    setMemberAmounts({});
-    setCategoryId(undefined);
-    setPaymentModeId(undefined);
-    onBillAdded();
-  } catch (err) {
-    setError(err instanceof Error ? err.message : "Failed to create bill");
-  } finally {
-    setSubmitting(false);
-  }
-};
+      toast.success("Bill added successfully!");
+      setAmount("");
+      setWhat("");
+      setComment("");
+      setPayer("");
+      setForEveryone(true);
+      setCustomSplit(false);
+      setMemberAmounts({});
+      setCategoryId(undefined);
+      setPaymentModeId(undefined);
+      onBillAdded();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create bill");
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   const toggleMember = (memberId: number) => {
     const newSelected = new Set(selectedMembers);
@@ -179,298 +197,260 @@ const handleSubmit = async (e: React.FormEvent) => {
     );
   }
 
-  const activeMembers = project?.members?.filter((m) => m.activated) || [];
-  const currencySymbol = project?.currencyname || "€";
-      const selectedMemberList = activeMembers.filter((m) =>
-      selectedMembers.has(m.id)
-    );
-
-    const totalAmount = parseFloat(amount || "0");
-
-    const customTotal = selectedMemberList.reduce(
-      (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
-      0
-    );
-
-    const remaining = totalAmount - customTotal;
-
-    const equalShare =
-      selectedMemberList.length > 0 ? totalAmount / selectedMemberList.length : 0;
-
   return (
-    <div className="min-h-screen overflow-y-auto p-4 space-y-6 pb-28">
-      <div>
-        <h1 className="text-3xl font-bold">Add Bill</h1>
-        <p className="text-muted-foreground">Record a new expense</p>
+    <div className="min-h-dvh overflow-y-auto px-4 pt-5 pb-[calc(11rem+env(safe-area-inset-bottom))] space-y-5">
+      <div className="space-y-1">
+        <p className="text-sm font-semibold text-blue-600">New expense</p>
+        <h1 className="text-3xl font-bold tracking-tight">Add Bill</h1>
+        <p className="text-sm text-slate-500">Record a new expense with a clean mobile flow.</p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Bill Details</CardTitle>
-          </CardHeader>
-<CardContent className="space-y-4">
-  <div className="space-y-2">
-    <Label htmlFor="amount">Amount ({currencySymbol})</Label>
-    <Input
-      id="amount"
-      type="number"
-      step="0.01"
-      placeholder="0.00"
-      value={amount}
-      onChange={(e) => setAmount(e.target.value)}
-      required
-      className="text-lg"
-    />
-  </div>
-
-  <div className="space-y-2">
-    <Label htmlFor="what">Description</Label>
-    <Input
-      id="what"
-      type="text"
-      placeholder="Dinner, groceries, etc."
-      value={what}
-      onChange={(e) => setWhat(e.target.value)}
-      required
-    />
-  </div>
-
-  <div className="space-y-2">
-    <Label htmlFor="comment">Comment (optional)</Label>
-    <Textarea
-      id="comment"
-      placeholder="Additional details..."
-      value={comment}
-      onChange={(e) => setComment(e.target.value)}
-      rows={2}
-    />
-  </div>
-
-  <div className="space-y-2">
-    <Label htmlFor="payer">Who Paid?</Label>
-    <Select value={payer} onValueChange={setPayer}>
-      <SelectTrigger id="payer">
-        <SelectValue placeholder="Select payer" />
-      </SelectTrigger>
-      <SelectContent>
-        {activeMembers.map((member) => (
-          <SelectItem key={member.id} value={member.id.toString()}>
-            {member.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-
-  {project?.categories && project.categories.length > 0 && (
-  <div className="space-y-2">
-    <Label htmlFor="category">Category</Label>
-    <Select
-      value={categoryId?.toString()}
-      onValueChange={(v) => setCategoryId(parseInt(v))}
-    >
-      <SelectTrigger id="category" className="rounded-2xl h-12">
-        <SelectValue placeholder="Select category" />
-      </SelectTrigger>
-
-      <SelectContent>
-        {project.categories.map((cat) => (
-          <SelectItem key={cat.id} value={cat.id.toString()}>
-            {cat.icon ? `${cat.icon} ` : ""}
-            {cat.name}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  </div>
-)}
-
-  {project?.categories && project.categories.length > 0 && (
-    <div className="space-y-2">
-      <Label htmlFor="category">Category (optional)</Label>
-      <Select
-        value={categoryId?.toString()}
-        onValueChange={(v) => setCategoryId(parseInt(v))}
-      >
-        <SelectTrigger id="category">
-          <SelectValue placeholder="Select category" />
-        </SelectTrigger>
-        <SelectContent>
-          {project.categories.map((cat) => (
-            <SelectItem key={cat.id} value={cat.id.toString()}>
-              {cat.icon} {cat.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  )}
-
-  {project?.paymentmodes && project.paymentmodes.length > 0 && (
-    <div className="space-y-2">
-      <Label htmlFor="paymentMode">Payment Mode (optional)</Label>
-      <Select
-        value={paymentModeId?.toString()}
-        onValueChange={(v) => setPaymentModeId(parseInt(v))}
-      >
-        <SelectTrigger id="paymentMode">
-          <SelectValue placeholder="Select payment mode" />
-        </SelectTrigger>
-        <SelectContent>
-          {project.paymentmodes.map((mode) => (
-            <SelectItem key={mode.id} value={mode.id.toString()}>
-              {mode.icon} {mode.name}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
-  )}
-</CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Participants</CardTitle>
+      <form onSubmit={handleSubmit} className="space-y-5">
+        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="text-xl">Bill details</CardTitle>
+            <p className="text-sm text-muted-foreground">Add the amount, description and optional tags.</p>
           </CardHeader>
           <CardContent className="space-y-4">
-  <div className="rounded-2xl bg-muted p-1 grid grid-cols-2 gap-1">
-    <Button
-      type="button"
-      variant={!customSplit ? "default" : "ghost"}
-      className="rounded-xl"
-      onClick={() => {
-        setCustomSplit(false);
-        setForEveryone(false);
-      }}
-    >
-      Equal
-    </Button>
+            <div className="space-y-2">
+              <Label htmlFor="amount">Amount ({currencySymbol})</Label>
+              <Input
+                id="amount"
+                type="number"
+                step="0.01"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                required
+                inputMode="decimal"
+                className="h-12 rounded-2xl bg-white text-lg"
+              />
+            </div>
 
-    <Button
-      type="button"
-      variant={customSplit ? "default" : "ghost"}
-      className="rounded-xl"
-      onClick={() => {
-        setCustomSplit(true);
-        setForEveryone(false);
-      }}
-    >
-      Custom
-    </Button>
-  </div>
+            <div className="space-y-2">
+              <Label htmlFor="what">Description</Label>
+              <Input
+                id="what"
+                type="text"
+                placeholder="Dinner, groceries, taxi..."
+                value={what}
+                onChange={(e) => setWhat(e.target.value)}
+                required
+                className="h-12 rounded-2xl bg-white"
+              />
+            </div>
 
-  {customSplit && (
-    <div
-      className={`rounded-2xl border p-4 ${
-        Math.abs(remaining) < 0.01
-          ? "bg-green-50 border-green-200 text-green-800"
-          : remaining > 0
-            ? "bg-orange-50 border-orange-200 text-orange-800"
-            : "bg-red-50 border-red-200 text-red-800"
-      }`}
-    >
-      <div className="flex justify-between text-sm">
-        <span>Assigned</span>
-        <strong>
-          {currencySymbol}
-          {customTotal.toFixed(2)}
-        </strong>
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor="comment">Comment <span className="text-muted-foreground">(optional)</span></Label>
+              <Textarea
+                id="comment"
+                placeholder="Add context, receipts or notes..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={3}
+                className="resize-none rounded-2xl bg-white"
+              />
+            </div>
 
-      <div className="flex justify-between text-sm mt-1">
-        <span>Remaining</span>
-        <strong>
-          {currencySymbol}
-          {remaining.toFixed(2)}
-        </strong>
-      </div>
-    </div>
-  )}
+            <div className="space-y-2">
+              <Label htmlFor="payer">Who paid?</Label>
+              <Select value={payer} onValueChange={setPayer}>
+                <SelectTrigger id="payer" className="h-12 rounded-2xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select payer" />
+                </SelectTrigger>
+                <SelectContent>
+                  {activeMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id.toString()}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-  <div className="space-y-3 pt-2">
-    {activeMembers.map((member) => {
-      const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
-      const isSelected = selectedMembers.has(member.id);
-
-      return (
-        <div
-          key={member.id}
-          className={`rounded-2xl border p-3 transition ${
-            isSelected
-              ? "bg-background border-primary/30"
-              : "bg-muted/40 border-transparent opacity-60"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Checkbox
-              id={`member-${member.id}`}
-              checked={isSelected}
-              onCheckedChange={() => toggleMember(member.id)}
-            />
-
-            <Label
-              htmlFor={`member-${member.id}`}
-              className="flex items-center gap-3 cursor-pointer flex-1"
-            >
-              <div
-                className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                style={{ backgroundColor: color }}
-              >
-                {member.name.charAt(0).toUpperCase()}
-              </div>
-
-              <div>
-                <div className="font-medium">{member.name}</div>
-
-                {!customSplit && isSelected && (
-                  <div className="text-xs text-muted-foreground">
-                    Equal share: {currencySymbol}
-                    {equalShare.toFixed(2)}
-                  </div>
-                )}
-              </div>
-            </Label>
-
-            {customSplit && isSelected && (
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0"
-                  value={memberAmounts[member.id] || ""}
-                  onChange={(e) =>
-                    updateMemberAmount(member.id, e.target.value)
-                  }
-                  className="w-24 text-right"
-                />
-                <span className="text-sm text-muted-foreground">
-                  {currencySymbol}
-                </span>
+            {project?.categories && project.categories.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="category">Category <span className="text-muted-foreground">(optional)</span></Label>
+                <Select
+                  value={categoryId?.toString()}
+                  onValueChange={(v) => setCategoryId(parseInt(v))}
+                >
+                  <SelectTrigger id="category" className="h-12 rounded-2xl border-slate-200 bg-white">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {project.categories.map((cat) => (
+                      <SelectItem key={cat.id} value={cat.id.toString()}>
+                        {cat.icon ? `${cat.icon} ` : ""}
+                        {cat.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
-          </div>
-        </div>
-      );
-    })}
-  </div>
-</CardContent>
+
+            {project?.paymentmodes && project.paymentmodes.length > 0 && (
+              <div className="space-y-2">
+                <Label htmlFor="paymentMode">Payment mode <span className="text-muted-foreground">(optional)</span></Label>
+                <Select
+                  value={paymentModeId?.toString()}
+                  onValueChange={(v) => setPaymentModeId(parseInt(v))}
+                >
+                  <SelectTrigger id="paymentMode" className="h-12 rounded-2xl border-slate-200 bg-white">
+                    <SelectValue placeholder="Select payment mode" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {project.paymentmodes.map((mode) => (
+                      <SelectItem key={mode.id} value={mode.id.toString()}>
+                        {mode.icon} {mode.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+          <CardHeader className="space-y-1 pb-3">
+            <CardTitle className="text-xl">Participants</CardTitle>
+            <p className="text-sm text-muted-foreground">Choose equal or custom split, then tap the people involved.</p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2 rounded-[1.5rem] bg-slate-100 p-1">
+              <Button
+                type="button"
+                variant={!customSplit ? "default" : "ghost"}
+                className="h-12 rounded-[1.1rem] font-semibold"
+                onClick={() => {
+                  setCustomSplit(false);
+                  setForEveryone(true);
+                }}
+              >
+                <Equal className="mr-2 h-4 w-4" />
+                Equal
+              </Button>
+
+              <Button
+                type="button"
+                variant={customSplit ? "default" : "ghost"}
+                className="h-12 rounded-[1.1rem] font-semibold"
+                onClick={() => {
+                  setCustomSplit(true);
+                  setForEveryone(false);
+                }}
+              >
+                <SlidersHorizontal className="mr-2 h-4 w-4" />
+                Custom
+              </Button>
+            </div>
+
+            <div className={`rounded-3xl border p-4 shadow-sm transition-all duration-200 ${customSplit ? splitStateTone : "border-slate-200 bg-slate-50 text-slate-700"}`}>
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Assigned</span>
+                <strong>
+                  {currencySymbol}{customTotal.toFixed(2)}
+                </strong>
+              </div>
+              <div className="mt-2 flex items-center justify-between text-sm">
+                <span className="font-medium">Remaining</span>
+                <strong>
+                  {currencySymbol}{remaining.toFixed(2)}
+                </strong>
+              </div>
+              {!customSplit && (
+                <p className="mt-3 text-xs text-slate-500">
+                  Equal split preview: {currencySymbol}{equalShare.toFixed(2)} per selected person.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-3 pt-1">
+              {activeMembers.map((member) => {
+                const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
+                const isSelected = selectedMembers.has(member.id);
+
+                return (
+                  <div
+                    key={member.id}
+                    className={`group rounded-3xl border p-4 transition-all duration-200 ${isSelected ? "border-blue-200 bg-white shadow-sm shadow-blue-100/70" : "border-slate-200 bg-slate-50/80 opacity-70"}`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <Checkbox
+                        id={`member-${member.id}`}
+                        checked={isSelected}
+                        onCheckedChange={() => toggleMember(member.id)}
+                      />
+
+                      <Label
+                        htmlFor={`member-${member.id}`}
+                        className="flex min-w-0 flex-1 cursor-pointer items-center gap-3"
+                      >
+                        <div
+                          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white shadow-sm transition-transform duration-200 group-hover:scale-105"
+                          style={{ backgroundColor: color }}
+                        >
+                          {member.name.charAt(0).toUpperCase()}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <div className="truncate font-medium text-slate-900">{member.name}</div>
+                            {isSelected && <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-600" />}
+                          </div>
+                          {customSplit ? (
+                            isSelected ? (
+                              <p className="text-xs text-slate-500">Enter the custom amount for this person.</p>
+                            ) : (
+                              <p className="text-xs text-slate-400">Tap to include in the split.</p>
+                            )
+                          ) : (
+                            isSelected && (
+                              <p className="text-xs text-slate-500">
+                                Equal share preview: {currencySymbol}{equalShare.toFixed(2)}
+                              </p>
+                            )
+                          )}
+                        </div>
+                      </Label>
+
+                      {customSplit && isSelected ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={memberAmounts[member.id] || ""}
+                            onChange={(e) => updateMemberAmount(member.id, e.target.value)}
+                            className="h-12 w-24 rounded-2xl bg-white text-right"
+                            inputMode="decimal"
+                          />
+                          <span className="text-sm font-medium text-slate-500">{currencySymbol}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
         </Card>
 
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="rounded-3xl border-0 shadow-sm">
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
 
         <Button
-  type="submit"
-  className="w-full mt-4 mb-8 rounded-2xl h-12"
-  size="lg"
-  disabled={submitting}
->
+          type="submit"
+          className="h-12 w-full rounded-2xl bg-blue-600 font-semibold text-white shadow-lg shadow-blue-600/25 transition-transform duration-200 active:scale-[0.99]"
+          size="lg"
+          disabled={submitting}
+        >
           {submitting ? "Adding Bill..." : "Add Bill"}
         </Button>
       </form>

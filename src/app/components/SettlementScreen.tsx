@@ -46,10 +46,10 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
   if (loading) {
     return (
-      <div className="p-4 space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-64" />
-        <Skeleton className="h-64" />
+      <div className="space-y-4 px-4 pt-5 pb-[calc(9rem+env(safe-area-inset-bottom))]">
+        <Skeleton className="h-10 w-56 rounded-2xl bg-white/80" />
+        <Skeleton className="h-64 rounded-3xl bg-white/80" />
+        <Skeleton className="h-64 rounded-3xl bg-white/80" />
       </div>
     );
   }
@@ -68,28 +68,24 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const currencySymbol = project?.currencyname || "€";
 
   return (
-    <div className="p-4 space-y-6 pb-24">
+    <div className="space-y-6 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <div className="flex items-start justify-between gap-2">
-        <div>
-          <h1 className="text-3xl font-bold">Settlement</h1>
-          <p className="text-muted-foreground">Simplified debt settlement plan</p>
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-blue-600">Overview</p>
+          <h1 className="text-3xl font-bold tracking-tight text-slate-900">Settlement</h1>
+          <p className="text-sm text-slate-500">Simplified debt settlement plan</p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={loadData}
-          disabled={loading}
-        >
+        <Button variant="outline" size="icon" onClick={loadData} disabled={loading} className="h-11 w-11 rounded-2xl border-slate-200 bg-white/90 shadow-sm">
           <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
         </Button>
       </div>
 
       {settlement?.transactions && settlement.transactions.length > 0 ? (
-        <Card>
-          <CardHeader>
-            <CardTitle>Payment Plan</CardTitle>
+        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xl">Payment plan</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-3">
             {settlement.transactions.map((tx, idx) => {
               const fromMember = project?.members?.find((m) => m.id === tx.from);
               const toMember = project?.members?.find((m) => m.id === tx.to);
@@ -103,7 +99,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
               return (
                 <div
                   key={idx}
-                  className="flex items-center gap-3 p-4 bg-muted rounded-lg"
+                  className="flex items-center gap-3 rounded-3xl border border-slate-200 bg-slate-50/80 p-4"
                 >
                   <div className="flex items-center gap-2 flex-1">
                     <div
@@ -113,16 +109,16 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                       {fromMember?.name.charAt(0).toUpperCase() || "?"}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold truncate">
+                      <p className="truncate font-semibold text-slate-900">
                         {fromMember?.name || "Unknown"}
                       </p>
-                      <p className="text-sm text-muted-foreground">pays</p>
+                      <p className="text-sm text-slate-500">pays</p>
                     </div>
                   </div>
 
                   <div className="flex flex-col items-center gap-1 shrink-0">
-                    <ArrowRight className="h-5 w-5 text-primary" />
-                    <span className="font-bold text-primary text-lg">
+                    <ArrowRight className="h-5 w-5 text-blue-600" />
+                    <span className="text-lg font-bold text-blue-600">
                       {currencySymbol}
                       {tx.amount.toFixed(2)}
                     </span>
@@ -130,10 +126,10 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
                   <div className="flex items-center gap-2 flex-1 justify-end">
                     <div className="min-w-0 text-right">
-                      <p className="font-semibold truncate">
+                      <p className="truncate font-semibold text-slate-900">
                         {toMember?.name || "Unknown"}
                       </p>
-                      <p className="text-sm text-muted-foreground">receives</p>
+                      <p className="text-sm text-slate-500">receives</p>
                     </div>
                     <div
                       className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
@@ -148,7 +144,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
           </CardContent>
         </Card>
       ) : (
-        <Alert>
+        <Alert className="rounded-3xl border-0 bg-emerald-50 text-emerald-700 shadow-sm">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             All settled up! No pending payments.
@@ -157,9 +153,9 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
       )}
 
       {stats?.balances && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Individual Balances</CardTitle>
+        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm backdrop-blur">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-xl">Individual balances</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             {Object.entries(stats.balances)
@@ -176,7 +172,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                 return (
                   <div
                     key={memberId}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    className="flex items-center justify-between rounded-3xl bg-slate-50/80 p-3"
                   >
                     <div className="flex items-center gap-3">
                       <div
@@ -185,19 +181,19 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                       >
                         {member.name.charAt(0).toUpperCase()}
                       </div>
-                      <span className="font-semibold">{member.name}</span>
+                      <span className="font-semibold text-slate-900">{member.name}</span>
                     </div>
                     <div className="text-right">
                       <div
                         className={`text-lg font-bold ${
-                          isPositive ? "text-green-600" : balance < 0 ? "text-red-600" : ""
+                          isPositive ? "text-emerald-600" : balance < 0 ? "text-rose-600" : "text-slate-900"
                         }`}
                       >
                         {isPositive ? "+" : ""}
                         {currencySymbol}
                         {balance.toFixed(2)}
                       </div>
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-slate-500">
                         {isPositive ? "is owed" : balance < 0 ? "owes" : "settled"}
                       </div>
                     </div>
