@@ -58,6 +58,10 @@ select,
   a:not([data-size="icon"]) {
     min-height: 46px;
   }
+  
+  button[role="checkbox"] {
+  min-height: unset !important;
+}
 
   input,
   select,
@@ -65,3 +69,4 @@ select,
     font-size: 16px;
   }
 }
+

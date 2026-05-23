@@ -207,130 +207,185 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
-        <Card className="rounded-3xl border-0 bg-white shadow-sm">
-          <CardHeader className="space-y-1 pb-3">
-            <CardTitle className="text-xl">Bill details</CardTitle>
-            <p className="text-sm text-muted-foreground">Add the amount, description and optional tags.</p>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="amount">Amount ({currencySymbol})</Label>
-              <Input
-                id="amount"
-                type="number"
-                step="0.01"
-                placeholder="0.00"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                required
-                inputMode="decimal"
-                className="h-12 rounded-2xl bg-white"
-              />
-            </div>
+<Card className="rounded-[2rem] border border-slate-200/70 bg-white shadow-xl shadow-slate-200/60 overflow-hidden">
+  <CardHeader className="space-y-1 border-b border-slate-100 px-5 pb-4 pt-5">
+    <CardTitle className="text-xl font-bold tracking-tight text-slate-900">
+      Bill details
+    </CardTitle>
 
-            <div className="space-y-2">
-              <Label htmlFor="what">Description</Label>
-              <Input
-                id="what"
-                type="text"
-                placeholder="Dinner, groceries, taxi..."
-                value={what}
-                onChange={(e) => setWhat(e.target.value)}
-                required
-                className="h-12 rounded-2xl bg-white"
-              />
-            </div>
+    <CardDescription className="text-sm text-slate-500">
+      Add the amount, description and optional tags.
+    </CardDescription>
+  </CardHeader>
 
-            <div className="space-y-2">
-              <Label htmlFor="comment">Comment <span className="text-muted-foreground">(optional)</span></Label>
-              <Textarea
-                id="comment"
-                placeholder="Add context, receipts or notes..."
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={3}
-                className="h-12 rounded-2xl bg-white resize-none min-h-24"
-              />
-            </div>
+  <CardContent className="space-y-5 p-5">
+    <div className="space-y-2">
+      <Label htmlFor="amount">
+        Amount ({currencySymbol})
+      </Label>
 
+      <Input
+        id="amount"
+        type="number"
+        step="0.01"
+        placeholder="0.00"
+        value={amount}
+        onChange={(e) => setAmount(e.target.value)}
+        required
+        className="h-16 rounded-2xl border-slate-200 bg-slate-50 px-4 text-3xl font-bold shadow-inner focus:bg-white"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="what">
+        Description
+      </Label>
+
+      <Input
+        id="what"
+        type="text"
+        placeholder="Dinner, groceries, taxi..."
+        value={what}
+        onChange={(e) => setWhat(e.target.value)}
+        required
+        className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 text-base shadow-inner focus:bg-white"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="comment">
+        Comment{" "}
+        <span className="text-muted-foreground">
+          (optional)
+        </span>
+      </Label>
+
+      <Textarea
+        id="comment"
+        placeholder="Add context, receipts or notes..."
+        value={comment}
+        onChange={(e) => setComment(e.target.value)}
+        rows={3}
+        className="min-h-24 rounded-2xl border-slate-200 bg-slate-50 px-4 py-3 text-base shadow-inner focus:bg-white resize-none"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <Label htmlFor="payer">
+        Who paid?
+      </Label>
+
+      <Select
+        value={payer}
+        onValueChange={setPayer}
+      >
+        <SelectTrigger
+          id="payer"
+          className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-inner"
+        >
+          <SelectValue placeholder="Select payer" />
+        </SelectTrigger>
+
+        <SelectContent className="rounded-2xl border-slate-200">
+          {activeMembers.map((member) => (
+            <SelectItem
+              key={member.id}
+              value={member.id.toString()}
+              className="rounded-xl"
+            >
+              {member.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+
+    <Button
+      type="button"
+      variant="ghost"
+      className="w-full h-12 rounded-2xl justify-between bg-blue-50 text-blue-700 hover:bg-blue-100"
+      onClick={() => setShowAdvanced(!showAdvanced)}
+    >
+      Advanced options
+
+      <span className="text-lg">
+        {showAdvanced ? "−" : "+"}
+      </span>
+    </Button>
+
+    {showAdvanced && (
+      <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
+        {project?.categories &&
+          project.categories.length > 0 && (
             <div className="space-y-2">
-              <Label htmlFor="payer">Who paid?</Label>
-              <Select value={payer} onValueChange={setPayer}>
-                <SelectTrigger id="payer" className="h-12 rounded-2xl bg-white">
-                  <SelectValue placeholder="Select payer" />
+              <Label htmlFor="category">
+                Category
+              </Label>
+
+              <Select
+                value={categoryId?.toString()}
+                onValueChange={(v) =>
+                  setCategoryId(parseInt(v))
+                }
+              >
+                <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
-                <SelectContent>
-                  {activeMembers.map((member) => (
-                    <SelectItem key={member.id} value={member.id.toString()}>
-                      {member.name}
+
+                <SelectContent className="rounded-2xl border-slate-200">
+                  {project.categories.map((cat) => (
+                    <SelectItem
+                      key={cat.id}
+                      value={cat.id.toString()}
+                    >
+                      {cat.icon
+                        ? `${cat.icon} `
+                        : ""}
+                      {cat.name}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
+          )}
 
-            <Button
-                type="button"
-                variant="ghost"
-                className="w-full rounded-2xl justify-between bg-slate-50"
-                onClick={() => setShowAdvanced(!showAdvanced)}
+        {project?.paymentmodes &&
+          project.paymentmodes.length > 0 && (
+            <div className="space-y-2">
+              <Label htmlFor="paymentMode">
+                Payment method
+              </Label>
+
+              <Select
+                value={paymentModeId?.toString()}
+                onValueChange={(v) =>
+                  setPaymentModeId(parseInt(v))
+                }
               >
-                Advanced options
-                <span>{showAdvanced ? "−" : "+"}</span>
-              </Button>
+                <SelectTrigger className="h-12 rounded-2xl border-slate-200 bg-white">
+                  <SelectValue placeholder="Select payment method" />
+                </SelectTrigger>
 
-              {showAdvanced && (
-                <div className="space-y-4 rounded-3xl bg-slate-50 p-4">
-                  {/* Category goes here */}
-{project?.categories && project.categories.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="category">Category <span className="text-muted-foreground">(optional)</span></Label>
-                <Select
-                  value={categoryId?.toString()}
-                  onValueChange={(v) => setCategoryId(parseInt(v))}
-                >
-                  <SelectTrigger id="category" className="h-12 rounded-2xl bg-white">
-                    <SelectValue placeholder="Select category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {project.categories.map((cat) => (
-                      <SelectItem key={cat.id} value={cat.id.toString()}>
-                        {cat.icon ? `${cat.icon} ` : ""}
-                        {cat.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            {project?.paymentmodes && project.paymentmodes.length > 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="paymentMode">Payment mode <span className="text-muted-foreground">(optional)</span></Label>
-                <Select
-                  value={paymentModeId?.toString()}
-                  onValueChange={(v) => setPaymentModeId(parseInt(v))}
-                >
-                  <SelectTrigger id="paymentMode" className="h-12 rounded-2xl bg-white">
-                    <SelectValue placeholder="Select payment mode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {project.paymentmodes.map((mode) => (
-                      <SelectItem key={mode.id} value={mode.id.toString()}>
-                        {mode.icon} {mode.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-                  {/* Payment method goes here */}
-                </div>
-              )}
-
-            
-          </CardContent>
-        </Card>
+                <SelectContent className="rounded-2xl border-slate-200">
+                  {project.paymentmodes.map((mode) => (
+                    <SelectItem
+                      key={mode.id}
+                      value={mode.id.toString()}
+                    >
+                      {mode.icon
+                        ? `${mode.icon} `
+                        : ""}
+                      {mode.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+      </div>
+    )}
+  </CardContent>
+</Card>
 
         <Card className="rounded-3xl border-0 bg-white shadow-sm">
           <CardHeader className="space-y-1 pb-3">
