@@ -44,15 +44,15 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Wallet className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Cospend Manager</CardTitle>
+          <CardTitle className="text-2xl">Splitcloud Manager</CardTitle>
           <CardDescription>
-            Enter your Cospend project link to get started
+            Enter your Splitcloud project link to get started
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="link">Cospend Link</Label>
+              <Label htmlFor="link">Scplitcloud Link</Label>
               <Input
                 id="link"
                 type="text"

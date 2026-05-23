@@ -130,7 +130,7 @@ const topMonth = Object.entries(spendingByMonth).sort(
     <div className="min-h-dvh space-y-5 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-blue-600">CoPay</p>
+          <p className="text-sm font-semibold text-blue-600">Prokect</p>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
             {project?.name || "Dashboard"}
           </h1>
