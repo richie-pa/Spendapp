@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
-import type { CospendLink, Project, Statistics, Settlement, Member } from "../types/cospend";
-import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
+import type { CospendLink, Project, Settlement } from "../types/cospend";
+import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
-import { AlertCircle, Users, Receipt, TrendingUp, RefreshCw } from "lucide-react";
+import { AlertCircle, Users, Receipt, RefreshCw, Wallet } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
 
@@ -13,14 +13,9 @@ interface DashboardScreenProps {
 
 export function DashboardScreen({ link }: DashboardScreenProps) {
   const [project, setProject] = useState<Project | null>(null);
-  const [stats, setStats] = useState<Statistics | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   const loadData = async () => {
     setLoading(true);
@@ -28,32 +23,31 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
     try {
       const api = new CospendApi(link);
-      const [projectData, statsData, settlementData] = await Promise.all([
+      const [projectData, settlementData] = await Promise.all([
         api.getProject(),
-        api.getStatistics(),
         api.getSettlement(),
       ]);
 
       setProject(projectData);
-      setStats(statsData);
       setSettlement(settlementData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data");
+      setError(err instanceof Error ? err.message : "Failed to load dashboard");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    loadData();
+  }, []);
+
   if (loading) {
     return (
       <div className="p-4 space-y-4">
-        <Skeleton className="h-8 w-64" />
-        <div className="grid gap-4 md:grid-cols-3">
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-          <Skeleton className="h-32" />
-        </div>
-        <Skeleton className="h-64" />
+        <Skeleton className="h-20 rounded-3xl" />
+        <Skeleton className="h-28 rounded-3xl" />
+        <Skeleton className="h-28 rounded-3xl" />
+        <Skeleton className="h-40 rounded-3xl" />
       </div>
     );
   }
@@ -71,135 +65,130 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
+  const totalSpent = project?.total_spent || 0;
+  const totalBills = project?.nb_bills || 0;
+  const balances = settlement?.balances || project?.balance || {};
+
+  const getMemberName = (id: number) =>
+    activeMembers.find((m) => m.id === id)?.name || `Member ${id}`;
 
   return (
-    <div className="p-4 space-y-6 pb-24">
-      <div className="flex items-start justify-between gap-2">
+    <div className="min-h-screen p-4 space-y-5 pb-28 bg-gradient-to-b from-blue-50 to-slate-50">
+      <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{project?.name || "Dashboard"}</h1>
-          <p className="text-muted-foreground">Overview of your shared expenses</p>
+          <p className="text-sm text-blue-600 font-semibold">CoPay</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            {project?.name || "Dashboard"}
+          </h1>
+          <p className="text-muted-foreground text-sm">
+            Shared expenses overview
+          </p>
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={loadData}
-          disabled={loading}
-        >
-          <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
+
+        <Button variant="outline" size="icon" onClick={loadData}>
+          <RefreshCw className="h-5 w-5" />
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Spent</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {currencySymbol}
-              {(stats?.totalSpent || 0).toFixed(2)}
+      <Card className="rounded-3xl border-0 shadow-lg bg-blue-600 text-white">
+        <CardContent className="p-6">
+          <div className="flex items-center gap-3">
+            <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center">
+              <Wallet className="h-6 w-6" />
             </div>
+            <div>
+              <p className="text-sm opacity-80">Total spent</p>
+              <div className="text-4xl font-bold">
+                {currencySymbol}
+                {totalSpent.toFixed(2)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Card className="rounded-3xl shadow-sm border-0">
+          <CardContent className="p-5">
+            <Receipt className="h-6 w-6 text-blue-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Bills</p>
+            <p className="text-2xl font-bold">{totalBills}</p>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Bills</CardTitle>
-            <Receipt className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats?.totalBills || 0}</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Members</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeMembers.length}</div>
+        <Card className="rounded-3xl shadow-sm border-0">
+          <CardContent className="p-5">
+            <Users className="h-6 w-6 text-emerald-600 mb-3" />
+            <p className="text-sm text-muted-foreground">Members</p>
+            <p className="text-2xl font-bold">{activeMembers.length}</p>
           </CardContent>
         </Card>
       </div>
 
-      {stats?.balances && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Member Balances</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {Object.entries(stats.balances).map(([memberId, balance]) => {
-                const member = project?.members?.find(
-                  (m) => m.id === parseInt(memberId)
-                );
-                if (!member) return null;
+      <Card className="rounded-3xl shadow-sm border-0">
+        <CardContent className="p-5 space-y-4">
+          <h2 className="text-xl font-bold">Balances</h2>
 
-                const isPositive = balance > 0;
-                const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
+          {activeMembers.map((member) => {
+            const balance = Number(balances[member.id] || 0);
+            const positive = balance >= 0;
 
-                return (
-                  <div key={memberId} className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div
-                        className="h-8 w-8 rounded-full flex items-center justify-center text-white text-sm font-medium"
-                        style={{ backgroundColor: color }}
-                      >
-                        {member.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-medium">{member.name}</span>
-                    </div>
-                    <span
-                      className={`font-bold ${
-                        isPositive ? "text-green-600" : "text-red-600"
-                      }`}
-                    >
-                      {isPositive ? "+" : ""}
-                      {currencySymbol}
-                      {balance.toFixed(2)}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {settlement?.transactions && settlement.transactions.length > 0 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Settlement Plan</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              {settlement.transactions.map((tx, idx) => {
-                const fromMember = project?.members?.find((m) => m.id === tx.from);
-                const toMember = project?.members?.find((m) => m.id === tx.to);
-
-                return (
+            return (
+              <div
+                key={member.id}
+                className="flex items-center justify-between rounded-2xl bg-slate-50 p-4"
+              >
+                <div className="flex items-center gap-3">
                   <div
-                    key={idx}
-                    className="flex items-center justify-between p-3 bg-muted rounded-lg"
+                    className="h-10 w-10 rounded-full flex items-center justify-center text-white font-bold"
+                    style={{
+                      backgroundColor: `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`,
+                    }}
                   >
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{fromMember?.name}</span>
-                      <span className="text-muted-foreground">pays</span>
-                      <span className="font-medium">{toMember?.name}</span>
-                    </div>
-                    <span className="font-bold text-primary">
-                      {currencySymbol}
-                      {tx.amount.toFixed(2)}
-                    </span>
+                    {member.name.charAt(0)}
                   </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+                  <span className="font-medium">{member.name}</span>
+                </div>
+
+                <span
+                  className={`font-bold ${
+                    positive ? "text-emerald-600" : "text-red-500"
+                  }`}
+                >
+                  {positive ? "+" : ""}
+                  {currencySymbol}
+                  {balance.toFixed(2)}
+                </span>
+              </div>
+            );
+          })}
+        </CardContent>
+      </Card>
+
+      <Card className="rounded-3xl shadow-sm border-0">
+        <CardContent className="p-5 space-y-4">
+          <h2 className="text-xl font-bold">Who owes who</h2>
+
+          {settlement?.transactions?.length ? (
+            settlement.transactions.map((tx, index) => (
+              <div
+                key={index}
+                className="rounded-2xl bg-orange-50 border border-orange-100 p-4"
+              >
+                <p className="font-medium">
+                  {getMemberName(tx.from)} pays {getMemberName(tx.to)}
+                </p>
+                <p className="text-2xl font-bold text-orange-600">
+                  {currencySymbol}
+                  {tx.amount.toFixed(2)}
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-muted-foreground">Everything is settled 🎉</p>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
