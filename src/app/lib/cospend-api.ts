@@ -28,19 +28,36 @@ export class CospendApi {
     };
   }
 
-  async getProject(): Promise<Project> {
-    const response = await fetch(this.getBaseUrl(), {
-      headers: this.getHeaders(),
-    });
-  
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`Failed to get project: ${response.status} - ${error}`);
+    async getProject(): Promise<Project> {
+      const response = await fetch(this.getBaseUrl(), {
+        headers: this.getHeaders(),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`Failed to get project: ${response.status} - ${error}`);
+      }
+
+      const data = await response.json();
+
+      const project = data.ocs?.data || data;
+
+      return {
+        ...project,
+
+        members: Array.isArray(project.members)
+          ? project.members
+          : Object.values(project.members || {}),
+
+        categories: Array.isArray(project.categories)
+          ? project.categories
+          : Object.values(project.categories || {}),
+
+        paymentmodes: Array.isArray(project.paymentmodes)
+          ? project.paymentmodes
+          : Object.values(project.paymentmodes || {}),
+      };
     }
-  
-    const data = await response.json();
-    return data.ocs?.data || data;
-  }
 
   async getMembers(): Promise<Member[]> {
     const response = await fetch(`${this.getBaseUrl()}/members`, {

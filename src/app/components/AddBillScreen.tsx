@@ -106,8 +106,8 @@ const handleSubmit = async (e: React.FormEvent) => {
           comment,
           payer: payerId,
           payedFor: member.id.toString(),
-          categoryId,
-          paymentModeId,
+          categoryId: categoryId || 0,
+          paymentModeId: paymentModeId || 0,
           repeat: "n",
           repeatAllActive: 0,
           repeatFreq: 1,
@@ -122,8 +122,8 @@ const handleSubmit = async (e: React.FormEvent) => {
         comment,
         payer: payerId,
         payedFor: participants.map((m) => m.id).join(","),
-        categoryId,
-        paymentModeId,
+        categoryId: categoryId || 0,
+        paymentModeId: paymentModeId || 0,
         repeat: "n",
         repeatAllActive: 0,
         repeatFreq: 1,
@@ -262,6 +262,29 @@ const handleSubmit = async (e: React.FormEvent) => {
       </SelectContent>
     </Select>
   </div>
+
+  {project?.categories && project.categories.length > 0 && (
+  <div className="space-y-2">
+    <Label htmlFor="category">Category</Label>
+    <Select
+      value={categoryId?.toString()}
+      onValueChange={(v) => setCategoryId(parseInt(v))}
+    >
+      <SelectTrigger id="category" className="rounded-2xl h-12">
+        <SelectValue placeholder="Select category" />
+      </SelectTrigger>
+
+      <SelectContent>
+        {project.categories.map((cat) => (
+          <SelectItem key={cat.id} value={cat.id.toString()}>
+            {cat.icon ? `${cat.icon} ` : ""}
+            {cat.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+)}
 
   {project?.categories && project.categories.length > 0 && (
     <div className="space-y-2">
