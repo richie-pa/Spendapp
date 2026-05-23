@@ -195,96 +195,98 @@ const handleSubmit = async (e: React.FormEvent) => {
             <CardTitle>Bill Details</CardTitle>
           </CardHeader>
 <CardContent className="space-y-4">
-  <div className="rounded-2xl bg-muted p-1 grid grid-cols-2 gap-1">
-    <Button
-      type="button"
-      variant={!customSplit ? "default" : "ghost"}
-      className="rounded-xl"
-      onClick={() => {
-        setCustomSplit(false);
-        setForEveryone(true);
-      }}
-    >
-      Equal
-    </Button>
-
-    <Button
-      type="button"
-      variant={customSplit ? "default" : "ghost"}
-      className="rounded-xl"
-      onClick={() => {
-        setCustomSplit(true);
-        setForEveryone(false);
-      }}
-    >
-      Custom
-    </Button>
+  <div className="space-y-2">
+    <Label htmlFor="amount">Amount ({currencySymbol})</Label>
+    <Input
+      id="amount"
+      type="number"
+      step="0.01"
+      placeholder="0.00"
+      value={amount}
+      onChange={(e) => setAmount(e.target.value)}
+      required
+      className="text-lg"
+    />
   </div>
 
-  {!customSplit && (
-    <div className="flex items-center justify-between rounded-2xl border bg-background p-4">
-      <Label htmlFor="forEveryone" className="cursor-pointer">
-        Split between all active members
-      </Label>
+  <div className="space-y-2">
+    <Label htmlFor="what">Description</Label>
+    <Input
+      id="what"
+      type="text"
+      placeholder="Dinner, groceries, etc."
+      value={what}
+      onChange={(e) => setWhat(e.target.value)}
+      required
+    />
+  </div>
 
-      <Checkbox
-        id="forEveryone"
-        checked={forEveryone}
-        onCheckedChange={(checked) => setForEveryone(checked as boolean)}
-      />
+  <div className="space-y-2">
+    <Label htmlFor="comment">Comment (optional)</Label>
+    <Textarea
+      id="comment"
+      placeholder="Additional details..."
+      value={comment}
+      onChange={(e) => setComment(e.target.value)}
+      rows={2}
+    />
+  </div>
+
+  <div className="space-y-2">
+    <Label htmlFor="payer">Who Paid?</Label>
+    <Select value={payer} onValueChange={setPayer}>
+      <SelectTrigger id="payer">
+        <SelectValue placeholder="Select payer" />
+      </SelectTrigger>
+      <SelectContent>
+        {activeMembers.map((member) => (
+          <SelectItem key={member.id} value={member.id.toString()}>
+            {member.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+
+  {project?.categories && project.categories.length > 0 && (
+    <div className="space-y-2">
+      <Label htmlFor="category">Category (optional)</Label>
+      <Select
+        value={categoryId?.toString()}
+        onValueChange={(v) => setCategoryId(parseInt(v))}
+      >
+        <SelectTrigger id="category">
+          <SelectValue placeholder="Select category" />
+        </SelectTrigger>
+        <SelectContent>
+          {project.categories.map((cat) => (
+            <SelectItem key={cat.id} value={cat.id.toString()}>
+              {cat.icon} {cat.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )}
 
-  {(!forEveryone || customSplit) && (
-    <div className="space-y-3 pt-2">
-      {activeMembers.map((member) => {
-        const color = `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`;
-
-        return (
-          <div
-            key={member.id}
-            className="flex items-center gap-3 rounded-2xl border bg-background p-3"
-          >
-            <Checkbox
-              id={`member-${member.id}`}
-              checked={selectedMembers.has(member.id)}
-              onCheckedChange={() => toggleMember(member.id)}
-            />
-
-            <Label
-              htmlFor={`member-${member.id}`}
-              className="flex items-center gap-3 cursor-pointer flex-1"
-            >
-              <div
-                className="h-10 w-10 rounded-full flex items-center justify-center text-white text-sm font-bold"
-                style={{ backgroundColor: color }}
-              >
-                {member.name.charAt(0).toUpperCase()}
-              </div>
-
-              <span className="font-medium">{member.name}</span>
-            </Label>
-
-            {customSplit && selectedMembers.has(member.id) && (
-              <div className="flex items-center gap-1">
-                <Input
-                  type="number"
-                  step="0.01"
-                  placeholder="0"
-                  value={memberAmounts[member.id] || ""}
-                  onChange={(e) =>
-                    updateMemberAmount(member.id, e.target.value)
-                  }
-                  className="w-24 text-right"
-                />
-                <span className="text-sm text-muted-foreground">
-                  {currencySymbol}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      })}
+  {project?.paymentmodes && project.paymentmodes.length > 0 && (
+    <div className="space-y-2">
+      <Label htmlFor="paymentMode">Payment Mode (optional)</Label>
+      <Select
+        value={paymentModeId?.toString()}
+        onValueChange={(v) => setPaymentModeId(parseInt(v))}
+      >
+        <SelectTrigger id="paymentMode">
+          <SelectValue placeholder="Select payment mode" />
+        </SelectTrigger>
+        <SelectContent>
+          {project.paymentmodes.map((mode) => (
+            <SelectItem key={mode.id} value={mode.id.toString()}>
+              {mode.icon} {mode.name}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
     </div>
   )}
 </CardContent>
