@@ -72,14 +72,14 @@ export interface Settlement {
 export interface CreateBillPayload {
   amount: number;
   what: string;
-  comment?: string;
+  comment: string;
   payer: number;
   payedFor: string;
   categoryId?: number;
   paymentModeId?: number;
-  repeat?: string;
-  repeatAllActive?: number;
-  repeatFreq?: number;
-  repeatUntil?: string | null;
+  repeat: string;
+  repeatAllActive: number;
+  repeatFreq: number;
+  repeatUntil: string | null;
   timestamp: number;
 }

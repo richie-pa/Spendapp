@@ -8,7 +8,7 @@ import { Textarea } from "./ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Checkbox } from "./ui/checkbox";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Equal, SlidersHorizontal } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { toast } from "sonner";
 
@@ -31,6 +31,8 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
   const [categoryId, setCategoryId] = useState<number | undefined>();
   const [paymentModeId, setPaymentModeId] = useState<number | undefined>();
+  const [customSplit, setCustomSplit] = useState(false);
+  const [memberAmounts, setMemberAmounts] = useState<Record<number, string>>({});
 
   useEffect(() => {
     loadProject();
@@ -54,33 +56,70 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!payer) {
-      toast.error("Please select who paid");
-      return;
-    }
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    const participants = forEveryone
-      ? project?.members?.filter((m) => m.activated).map((m) => m.id) || []
-      : Array.from(selectedMembers);
+  if (!payer) {
+    toast.error("Please select who paid");
+    return;
+  }
 
-    if (participants.length === 0) {
-      toast.error("Please select at least one participant");
-      return;
-    }
+  const payerId = parseInt(payer);
 
-    setSubmitting(true);
-    setError("");
+  const participants = forEveryone
+    ? activeMembers
+    : activeMembers.filter((m) => selectedMembers.has(m.id));
 
-    try {
-      const api = new CospendApi(link);
+  if (participants.length === 0) {
+    toast.error("Please select at least one participant");
+    return;
+  }
+
+  setSubmitting(true);
+  setError("");
+
+  try {
+    const api = new CospendApi(link);
+
+    if (customSplit) {
+      const expected = parseFloat(amount);
+      const totalCustom = participants.reduce(
+        (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+        0
+      );
+
+      if (Math.abs(totalCustom - expected) > 0.01) {
+        toast.error("Custom split must equal total amount");
+        setSubmitting(false);
+        return;
+      }
+
+      for (const member of participants) {
+        const share = parseFloat(memberAmounts[member.id] || "0");
+        if (share <= 0) continue;
+
+        await api.createBill({
+          amount: share,
+          what: `${what} - ${member.name}`,
+          comment,
+          payer: payerId,
+          payedFor: member.id.toString(),
+          categoryId,
+          paymentModeId,
+          repeat: "n",
+          repeatAllActive: 0,
+          repeatFreq: 1,
+          repeatUntil: null,
+          timestamp: Math.floor(Date.now() / 1000),
+        });
+      }
+    } else {
       await api.createBill({
         amount: parseFloat(amount),
         what,
         comment,
-        payer: parseInt(payer),
-        payedFor: participants.join(","),
+        payer: payerId,
+        payedFor: participants.map((m) => m.id).join(","),
         categoryId,
         paymentModeId,
         repeat: "n",
@@ -89,22 +128,25 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
         repeatUntil: null,
         timestamp: Math.floor(Date.now() / 1000),
       });
-
-      toast.success("Bill added successfully!");
-      setAmount("");
-      setWhat("");
-      setComment("");
-      setPayer("");
-      setForEveryone(true);
-      setCategoryId(undefined);
-      setPaymentModeId(undefined);
-      onBillAdded();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create bill");
-    } finally {
-      setSubmitting(false);
     }
-  };
+
+    toast.success("Bill added successfully!");
+    setAmount("");
+    setWhat("");
+    setComment("");
+    setPayer("");
+    setForEveryone(true);
+    setCustomSplit(false);
+    setMemberAmounts({});
+    setCategoryId(undefined);
+    setPaymentModeId(undefined);
+    onBillAdded();
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to create bill");
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const toggleMember = (memberId: number) => {
     const newSelected = new Set(selectedMembers);
@@ -114,6 +156,13 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       newSelected.add(memberId);
     }
     setSelectedMembers(newSelected);
+  };
+
+  const updateMemberAmount = (memberId: number, value: string) => {
+    setMemberAmounts((prev) => ({
+      ...prev,
+      [memberId]: value,
+    }));
   };
 
   if (loading) {
@@ -246,6 +295,27 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
             <CardTitle>Participants</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-2">
+      <Button
+          type="button"
+          variant={!customSplit ? "default" : "outline"}
+          onClick={() => setCustomSplit(false)}
+        >
+          <Equal className="h-4 w-4 mr-2" />
+          Equal
+        </Button>
+
+        <Button
+          type="button"
+          variant={customSplit ? "default" : "outline"}
+          onClick={() => setCustomSplit(true)}
+        >
+          <SlidersHorizontal className="h-4 w-4 mr-2" />
+          Custom
+        </Button>
+      </div>
+
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="forEveryone"
@@ -279,6 +349,18 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
                           {member.name.charAt(0).toUpperCase()}
                         </div>
                         <span>{member.name}</span>
+                        {customSplit && (
+                        <Input
+                          type="number"
+                          step="0.01"
+                          placeholder="0"
+                          value={memberAmounts[member.id] || ""}
+                          onChange={(e) =>
+                            updateMemberAmount(member.id, e.target.value)
+                          }
+                          className="w-24 ml-auto"
+                        />
+                      )}
                       </Label>
                     </div>
                   );
