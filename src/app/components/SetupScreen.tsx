@@ -17,6 +17,11 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  const handleAddProject = () => {
+    storage.clearLink();
+    onLogout();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");

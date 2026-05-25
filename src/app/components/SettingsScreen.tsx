@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
-import { storage, type SavedProject } from "../lib/storage";
+import {
+  storage,
+  type SavedProject,
+} from "../lib/storage";
 
 import { Button } from "./ui/button";
+
 import {
   Card,
   CardContent,
@@ -15,6 +19,7 @@ import {
   FolderOpen,
   ChevronRight,
   Smartphone,
+  Plus,
 } from "lucide-react";
 
 import {
@@ -36,7 +41,9 @@ interface SettingsScreenProps {
 export function SettingsScreen({
   onLogout,
 }: SettingsScreenProps) {
-  const [projects, setProjects] = useState<SavedProject[]>([]);
+  const [projects, setProjects] = useState<
+    SavedProject[]
+  >([]);
 
   useEffect(() => {
     setProjects(storage.getProjects());
@@ -70,6 +77,11 @@ export function SettingsScreen({
     setProjects(updated);
   };
 
+  const handleAddProject = () => {
+    storage.clearLink();
+    onLogout();
+  };
+
   return (
     <div className="space-y-6 px-4 pt-5 pb-28">
       <div className="space-y-1">
@@ -82,7 +94,8 @@ export function SettingsScreen({
         </h1>
 
         <p className="text-sm text-slate-500">
-          Manage your Splitcloud projects and connection
+          Manage your Splitcloud projects and
+          connections
         </p>
       </div>
 
@@ -129,7 +142,7 @@ export function SettingsScreen({
           </CardTitle>
 
           <CardDescription>
-            Quickly switch between shared groups
+            Quickly switch between groups
           </CardDescription>
         </CardHeader>
 
@@ -169,10 +182,13 @@ export function SettingsScreen({
                         size="sm"
                         className="rounded-2xl"
                         onClick={() =>
-                          handleSwitchProject(project)
+                          handleSwitchProject(
+                            project
+                          )
                         }
                       >
                         Open
+
                         <ChevronRight className="ml-1 h-4 w-4" />
                       </Button>
                     )}
@@ -184,7 +200,9 @@ export function SettingsScreen({
                       size="sm"
                       className="mt-3 h-9 rounded-2xl text-red-500 hover:bg-red-50 hover:text-red-600"
                       onClick={() =>
-                        handleRemoveProject(project.id)
+                        handleRemoveProject(
+                          project.id
+                        )
                       }
                     >
                       Remove project
@@ -200,10 +218,21 @@ export function SettingsScreen({
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                Connect another project to save it here
+                Add another project to save it
+                here
               </p>
             </div>
           )}
+
+          <Button
+            type="button"
+            variant="outline"
+            className="h-12 w-full rounded-2xl border-dashed"
+            onClick={handleAddProject}
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Add another project
+          </Button>
         </CardContent>
       </Card>
 
@@ -278,9 +307,9 @@ export function SettingsScreen({
           </div>
 
           <p>
-            Built for shared trips, homes, couples,
-            friends and groups using the Cospend
-            public API.
+            Built for shared homes, couples,
+            trips, friends and groups using the
+            Cospend public API.
           </p>
         </CardContent>
       </Card>
