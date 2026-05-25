@@ -35,6 +35,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const [memberAmounts, setMemberAmounts] = useState<Record<number, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [markAsPaidBack, setMarkAsPaidBack] = useState(false);
+  const [receiver, setReceiver] = useState("");
 
 
   useEffect(() => {
@@ -45,7 +46,6 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const currencySymbol = project?.currencyname || "€";
   const selectedMemberList = activeMembers.filter((m) => selectedMembers.has(m.id));
   const totalAmount = parseFloat(amount || "0");
-  const [receiver, setReceiver] = useState("");
   const customTotal = selectedMemberList.reduce(
     (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
     0
@@ -53,13 +53,6 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const remaining = totalAmount - customTotal;
   const equalShare =
     selectedMemberList.length > 0 ? totalAmount / selectedMemberList.length : 0;
-  const paidBackCategory = project?.categories?.find((cat) =>
-      cat.name.toLowerCase().includes("paid back")
-    );
-
-  const effectiveCategoryId = markAsPaidBack
-      ? paidBackCategory?.id
-      : categoryId;
   const splitStateTone =
     Math.abs(remaining) < 0.01
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
