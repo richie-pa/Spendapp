@@ -132,30 +132,49 @@ export function BillsScreen({ link }: BillsScreenProps) {
     );
   };
 
-  const getPaidForNames = (bill: Bill) => {
-    const raw = bill as any;
+const getPaidForNames = (bill: Bill) => {
+  const raw = bill as any;
 
-    const rawIds =
-      raw.payed_for ||
-      raw.payedFor ||
-      raw.payed_for_ids ||
-      raw.payedForIds ||
-      raw.ower_ids ||
-      raw.owers ||
-      "";
+  const rawIds =
+    raw.payed_for ||
+    raw.payedFor ||
+    raw.payed_for_ids ||
+    raw.payedForIds ||
+    raw.ower_ids ||
+    raw.owers ||
+    raw.payed_for_names ||
+    raw.payedForNames ||
+    "";
 
-    const idList = Array.isArray(rawIds)
-      ? rawIds.map(Number)
-      : String(rawIds)
-          .split(",")
-          .map((id) => Number(id.trim()))
-          .filter(Boolean);
+  if (Array.isArray(rawIds)) {
+    return rawIds
+      .map((item) => {
+        if (typeof item === "object") {
+          return item.name || getMemberById(Number(item.id))?.name;
+        }
 
-    return idList
-      .map((id) => getMemberById(id)?.name)
+        return getMemberById(Number(item))?.name;
+      })
       .filter(Boolean)
       .join(", ");
-  };
+  }
+
+  if (typeof rawIds === "string" && rawIds.includes(",")) {
+    return rawIds
+      .split(",")
+      .map((id) => getMemberById(Number(id.trim()))?.name)
+      .filter(Boolean)
+      .join(", ");
+  }
+
+  if (rawIds) {
+    return getMemberById(Number(rawIds))?.name || String(rawIds);
+  }
+
+  return "";
+};
+
+console.log("BILL RAW:", bill);
 
   const isPaidBackBill = (bill: Bill) => {
     const categoryName = getCategoryName(bill).toLowerCase();
