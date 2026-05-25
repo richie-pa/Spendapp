@@ -8,9 +8,10 @@ import {
   AlertCircle,
   ArrowRight,
   RefreshCw,
-  Scale,
   Wallet,
-  TrendingUp,
+  HandCoins,
+  ShoppingBag,
+  Scale,
 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
@@ -76,6 +77,10 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
+
+  const money = (value: number) => {
+    return `${currencySymbol}${Number(value || 0).toFixed(2)}`;
+  };
 
   const getMemberName = (id: unknown) => {
     const memberId = Number(id);
@@ -148,16 +153,17 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
       .filter(Boolean);
   };
 
-  const expenseBills = bills;
+  const normalBills = bills.filter((bill) => !isPaidBackBill(bill));
+  const paidBackBills = bills.filter((bill) => isPaidBackBill(bill));
 
   const getMemberPaid = (memberId: number) => {
-    return expenseBills
+    return normalBills
       .filter((bill) => getPayerId(bill) === memberId)
       .reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
   };
 
   const getMemberSpent = (memberId: number) => {
-    return expenseBills.reduce((sum, bill) => {
+    return normalBills.reduce((sum, bill) => {
       const ids = getPaidForIds(bill);
 
       if (!ids.includes(memberId) || ids.length === 0) {
@@ -168,29 +174,56 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
     }, 0);
   };
 
+  const getMemberReceived = (memberId: number) => {
+    return paidBackBills.reduce((sum, bill) => {
+      const ids = getPaidForIds(bill);
+
+      if (!ids.includes(memberId)) {
+        return sum;
+      }
+
+      return sum + Number(bill.amount || 0);
+    }, 0);
+  };
+
+  const getMemberSentBack = (memberId: number) => {
+    return paidBackBills
+      .filter((bill) => getPayerId(bill) === memberId)
+      .reduce((sum, bill) => sum + Number(bill.amount || 0), 0);
+  };
+
+  const getSettlementBalance = (memberId: number) => {
+    const balances = settlement?.balances || (project as any)?.balance || {};
+    const value = (balances as any)[memberId];
+
+    if (value !== undefined && value !== null) {
+      return Number(value);
+    }
+
+    const paid = getMemberPaid(memberId);
+    const received = getMemberReceived(memberId);
+    const spent = getMemberSpent(memberId);
+    const sentBack = getMemberSentBack(memberId);
+
+    return paid + received - spent - sentBack;
+  };
+
   const memberSummaries = activeMembers.map((member) => {
     const paid = getMemberPaid(member.id);
+    const received = getMemberReceived(member.id);
     const spent = getMemberSpent(member.id);
-    const balance = paid - spent;
+    const sentBack = getMemberSentBack(member.id);
+    const balance = getSettlementBalance(member.id);
 
     return {
       member,
       paid,
+      received,
       spent,
+      sentBack,
       balance,
     };
   });
-
-  const totalExpenses = expenseBills.reduce(
-    (sum, bill) => sum + Number(bill.amount || 0),
-    0
-  );
-
-  const unsettledAmount =
-    settlement?.transactions?.reduce(
-      (sum, tx: any) => sum + Number(tx.amount || 0),
-      0
-    ) || 0;
 
   const mostAdvanced = [...memberSummaries].sort(
     (a, b) => b.balance - a.balance
@@ -211,7 +244,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
           </h1>
 
           <p className="text-sm text-slate-500">
-            Simple numbers for who paid, spent, and still owes
+            Paid, received, spent and current balance
           </p>
         </div>
 
@@ -226,15 +259,13 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         </Button>
       </div>
 
-
-
       {memberSummaries.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
           <Card className="rounded-3xl border-0 bg-emerald-50 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-emerald-700">
                 <Wallet className="h-4 w-4" />
-                <p className="text-sm font-medium">Most advanced</p>
+                <p className="text-sm font-medium">Gets back most</p>
               </div>
 
               <p className="mt-2 truncate text-lg font-bold text-emerald-950">
@@ -242,8 +273,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
               </p>
 
               <p className="text-sm font-semibold text-emerald-700">
-                +{currencySymbol}
-                {Math.max(mostAdvanced?.balance || 0, 0).toFixed(2)}
+                +{money(Math.max(mostAdvanced?.balance || 0, 0))}
               </p>
             </CardContent>
           </Card>
@@ -251,8 +281,8 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
           <Card className="rounded-3xl border-0 bg-red-50 shadow-sm">
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-red-600">
-                <TrendingUp className="h-4 w-4" />
-                <p className="text-sm font-medium">Most owing</p>
+                <Scale className="h-4 w-4" />
+                <p className="text-sm font-medium">Owes most</p>
               </div>
 
               <p className="mt-2 truncate text-lg font-bold text-red-950">
@@ -260,8 +290,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
               </p>
 
               <p className="text-sm font-semibold text-red-600">
-                {currencySymbol}
-                {Math.min(mostOwing?.balance || 0, 0).toFixed(2)}
+                {money(Math.min(mostOwing?.balance || 0, 0))}
               </p>
             </CardContent>
           </Card>
@@ -274,88 +303,101 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {memberSummaries.map(({ member, paid, spent, balance }) => {
-            const isPositive = balance >= 0;
+          {memberSummaries.map(
+            ({ member, paid, received, spent, sentBack, balance }) => {
+              const isPositive = balance >= 0;
 
-            return (
-              <div
-                key={member.id}
-                className="rounded-3xl border border-slate-100 bg-slate-50 p-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <div className="flex min-w-0 items-center gap-3">
-                    <div
-                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-bold text-white"
-                      style={{
-                        backgroundColor: `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`,
-                      }}
-                    >
-                      {member.name.charAt(0).toUpperCase()}
+              return (
+                <div
+                  key={member.id}
+                  className="rounded-3xl border border-slate-100 bg-slate-50 p-4"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <div
+                        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-bold text-white"
+                        style={{
+                          backgroundColor: `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`,
+                        }}
+                      >
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold text-slate-900">
+                          {member.name}
+                        </p>
+
+                        <p className="text-xs text-slate-500">
+                          Paid {money(paid)} · Received {money(received)} · Spent{" "}
+                          {money(spent)}
+                        </p>
+                      </div>
                     </div>
 
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold text-slate-900">
-                        {member.name}
+                    <div className="text-right">
+                      <p
+                        className={`text-lg font-bold ${
+                          isPositive ? "text-emerald-600" : "text-red-500"
+                        }`}
+                      >
+                        {isPositive ? "+" : ""}
+                        {money(balance)}
                       </p>
 
                       <p className="text-xs text-slate-500">
-                        Paid {currencySymbol}
-                        {paid.toFixed(2)} · Spent {currencySymbol}
-                        {spent.toFixed(2)}
+                        {isPositive ? "gets back" : "owes"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="text-right">
-                    <p
-                      className={`text-lg font-bold ${
-                        isPositive ? "text-emerald-600" : "text-red-500"
-                      }`}
-                    >
-                      {isPositive ? "+" : ""}
-                      {currencySymbol}
-                      {balance.toFixed(2)}
-                    </p>
+                  <div className="mt-4 grid grid-cols-3 gap-2">
+                    <div className="rounded-2xl bg-white p-3 text-center">
+                      <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-blue-50 text-blue-600">
+                        <Wallet className="h-3.5 w-3.5" />
+                      </div>
 
-                    <p className="text-xs text-slate-500">
-                      {isPositive ? "gets back" : "owes"}
-                    </p>
+                      <p className="text-[11px] text-slate-500">Paid</p>
+
+                      <p className="font-semibold text-slate-900">
+                        {money(paid)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-3 text-center">
+                      <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-50 text-emerald-600">
+                        <HandCoins className="h-3.5 w-3.5" />
+                      </div>
+
+                      <p className="text-[11px] text-slate-500">Received</p>
+
+                      <p className="font-semibold text-emerald-700">
+                        {money(received)}
+                      </p>
+                    </div>
+
+                    <div className="rounded-2xl bg-white p-3 text-center">
+                      <div className="mx-auto mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-purple-50 text-purple-600">
+                        <ShoppingBag className="h-3.5 w-3.5" />
+                      </div>
+
+                      <p className="text-[11px] text-slate-500">Spent</p>
+
+                      <p className="font-semibold text-slate-900">
+                        {money(spent)}
+                      </p>
+                    </div>
                   </div>
+
+                  {sentBack > 0 && (
+                    <div className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+                      Sent back {money(sentBack)} already
+                    </div>
+                  )}
                 </div>
-
-                <div className="mt-4 grid grid-cols-3 gap-2">
-                  <div className="rounded-2xl bg-white p-2 text-center">
-                    <p className="text-[11px] text-slate-500">Paid</p>
-                    <p className="font-semibold text-slate-900">
-                      {currencySymbol}
-                      {paid.toFixed(0)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-white p-2 text-center">
-                    <p className="text-[11px] text-slate-500">Spent</p>
-                    <p className="font-semibold text-slate-900">
-                      {currencySymbol}
-                      {spent.toFixed(0)}
-                    </p>
-                  </div>
-
-                  <div className="rounded-2xl bg-white p-2 text-center">
-                    <p className="text-[11px] text-slate-500">Balance</p>
-                    <p
-                      className={`font-semibold ${
-                        isPositive ? "text-emerald-600" : "text-red-500"
-                      }`}
-                    >
-                      {isPositive ? "+" : ""}
-                      {currencySymbol}
-                      {balance.toFixed(0)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+              );
+            }
+          )}
         </CardContent>
       </Card>
 
@@ -385,8 +427,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                   </div>
 
                   <span className="shrink-0 text-lg font-bold text-orange-600">
-                    {currencySymbol}
-                    {Number(tx.amount || 0).toFixed(2)}
+                    {money(Number(tx.amount || 0))}
                   </span>
                 </div>
               ))}
