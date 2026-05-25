@@ -388,7 +388,8 @@ const getPaidForNames = (bill: Bill) => {
                       </div>
                     </div>
 
-                   <Button
+                {!bill.deleted && (
+                  <Button
                     variant="ghost"
                     size="icon"
                     className="shrink-0 rounded-2xl"
@@ -396,6 +397,7 @@ const getPaidForNames = (bill: Bill) => {
                   >
                     <Trash2 className="h-4 w-4 text-red-500" />
                   </Button>
+                )}
                   </div>
                 </CardContent>
               </Card>
