@@ -148,7 +148,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
       .filter(Boolean);
   };
 
-  const expenseBills = bills.filter((bill) => !isPaidBackBill(bill));
+  const expenseBills = bills;
 
   const getMemberPaid = (memberId: number) => {
     return expenseBills
