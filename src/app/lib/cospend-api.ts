@@ -62,9 +62,9 @@ export class CospendApi {
     return data.ocs?.data || data;
   }
 
-  async getBills(): Promise<Bill[]> {
+  async getBills(deleted = false): Promise<Bill[]> {
     const response = await CapacitorHttp.get({
-      url: `${this.getBaseUrl()}/bills`,
+      url: `${this.getBaseUrl()}/bills?offset=0&limit=100&reverse=true&deleted=${deleted ? 1 : 0}`,
       headers: this.getHeaders(),
     });
 

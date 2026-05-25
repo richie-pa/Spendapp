@@ -51,12 +51,19 @@ export function BillsScreen({ link }: BillsScreenProps) {
 
     try {
       const api = new CospendApi(link);
-      const [billsData, projectData] = await Promise.all([
-        api.getBills(),
+
+      const [activeBills, deletedBills, projectData] = await Promise.all([
+        api.getBills(false),
+        api.getBills(true),
         api.getProject(),
       ]);
 
-      setBills([...billsData].sort((a, b) => b.timestamp - a.timestamp));
+      const allBills = [
+        ...activeBills.map((b) => ({ ...b, deleted: false })),
+        ...deletedBills.map((b) => ({ ...b, deleted: true })),
+      ];
+
+      setBills(allBills.sort((a, b) => b.timestamp - a.timestamp));
       setProject(projectData);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load movements");
@@ -98,8 +105,14 @@ export function BillsScreen({ link }: BillsScreenProps) {
     }
   };
 
+  const getMemberById = (id: number) => {
+    return project?.members?.find((m) => m.id === id);
+  };
+
   const getPayer = (bill: Bill) => {
-    return project?.members?.find((m) => m.id === bill.payer_id);
+    const raw = bill as any;
+    const payerId = raw.payer_id || raw.payerId || raw.payer;
+    return getMemberById(Number(payerId));
   };
 
   const getCategoryName = (bill: Bill) => {
@@ -112,10 +125,36 @@ export function BillsScreen({ link }: BillsScreenProps) {
         (cat) =>
           cat.id === raw.categoryid ||
           cat.id === raw.category_id ||
-          cat.id === raw.categoryId
+          cat.id === raw.categoryId ||
+          cat.id === raw.category
       )?.name ||
       ""
     );
+  };
+
+  const getPaidForNames = (bill: Bill) => {
+    const raw = bill as any;
+
+    const rawIds =
+      raw.payed_for ||
+      raw.payedFor ||
+      raw.payed_for_ids ||
+      raw.payedForIds ||
+      raw.ower_ids ||
+      raw.owers ||
+      "";
+
+    const idList = Array.isArray(rawIds)
+      ? rawIds.map(Number)
+      : String(rawIds)
+          .split(",")
+          .map((id) => Number(id.trim()))
+          .filter(Boolean);
+
+    return idList
+      .map((id) => getMemberById(id)?.name)
+      .filter(Boolean)
+      .join(", ");
   };
 
   const isPaidBackBill = (bill: Bill) => {
@@ -128,18 +167,20 @@ export function BillsScreen({ link }: BillsScreenProps) {
   };
 
   const visibleBills = bills.filter((bill) =>
-    showDeleted ? bill.deleted : !bill.deleted
+    showDeleted ? Boolean(bill.deleted) : !bill.deleted
   );
 
   const filteredBills = visibleBills.filter((bill) => {
     const searchLower = search.toLowerCase();
     const payer = getPayer(bill);
     const categoryName = getCategoryName(bill);
+    const paidForNames = getPaidForNames(bill);
 
     return (
       bill.what?.toLowerCase().includes(searchLower) ||
       bill.comment?.toLowerCase().includes(searchLower) ||
       payer?.name.toLowerCase().includes(searchLower) ||
+      paidForNames.toLowerCase().includes(searchLower) ||
       categoryName.toLowerCase().includes(searchLower) ||
       bill.amount.toString().includes(searchLower)
     );
@@ -173,14 +214,8 @@ export function BillsScreen({ link }: BillsScreenProps) {
     <div className="min-h-dvh space-y-4 overflow-y-auto bg-slate-50 px-4 pt-5 pb-28">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="text-sm font-semibold text-blue-600">
-            Activity
-          </p>
-
-          <h1 className="text-3xl font-bold tracking-tight">
-            Movements
-          </h1>
-
+          <p className="text-sm font-semibold text-blue-600">Activity</p>
+          <h1 className="text-3xl font-bold tracking-tight">Movements</h1>
           <p className="text-sm text-slate-500">
             {filteredBills.length} {showDeleted ? "deleted" : "active"} movements
           </p>
@@ -231,6 +266,7 @@ export function BillsScreen({ link }: BillsScreenProps) {
         ) : (
           filteredBills.map((bill) => {
             const payer = getPayer(bill);
+            const paidForNames = getPaidForNames(bill);
             const categoryName = getCategoryName(bill);
             const isPaidBack = isPaidBackBill(bill);
             const date = new Date(bill.timestamp * 1000);
@@ -267,7 +303,8 @@ export function BillsScreen({ link }: BillsScreenProps) {
                           </p>
 
                           <p className="mt-1 text-sm text-slate-500">
-                            Paid by {payer?.name || "Unknown"} ·{" "}
+                            {payer?.name || "Unknown"} paid for{" "}
+                            {paidForNames || "Unknown"} ·{" "}
                             {date.toLocaleDateString()}
                           </p>
 
@@ -300,7 +337,7 @@ export function BillsScreen({ link }: BillsScreenProps) {
                           </span>
                         )}
 
-                        {categoryName && (
+                        {Boolean(categoryName) && (
                           <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
                             {categoryName}
                           </span>
