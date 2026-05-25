@@ -227,27 +227,10 @@ const handleSubmit = async (e: React.FormEvent) => {
           repeatUntil: null,
           timestamp: Math.floor(Date.now() / 1000),
         });
-
-        const actor = getActorName();
-
-        await notifySplitCloud({
-          projectId: link.token,
-          actor,
-          title: "New custom split in SplitCloud",
-          body: `${actor} added ${what || "a custom split"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
-        });
       }
 
-      const actor = getActorName();
-
-      await notifySplitCloud({
-        projectId: link.token,
-        actor,
-        title: "New custom split in SplitCloud",
-        body: `${actor} added ${what || "a custom split"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
-      });
     } else {
-      await api.createBill({
+          await api.createBill({
         amount: parseFloat(amount),
         what,
         comment,
@@ -260,6 +243,15 @@ const handleSubmit = async (e: React.FormEvent) => {
         repeatFreq: 1,
         repeatUntil: null,
         timestamp: Math.floor(Date.now() / 1000),
+      });
+
+      const actor = getActorName();
+
+      await notifySplitCloud({
+        projectId: link.token,
+        actor,
+        title: "New bill in SplitCloud",
+        body: `${actor} added ${what || "a bill"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
       });
     }
 
