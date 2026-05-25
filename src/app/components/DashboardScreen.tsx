@@ -112,6 +112,10 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
   };
 
   const expenseBills = bills.filter((bill) => !isPaidBackBill(bill));
+  const paidBackBills = bills
+  .filter(isPaidBackBill)
+  .sort((a, b) => b.timestamp - a.timestamp)
+  .slice(0, 2);
 
   const now = new Date();
 
@@ -403,46 +407,25 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
                     );
                   })}
 
-                {recentPaidBacks.length > 0 && (
-                  <>
-                    <div className="pt-2">
-                      <p className="text-sm font-semibold text-green-700">
-                        Recent paid backs
-                      </p>
-                    </div>
+{paidBackBills.map((bill) => (
+  <div
+    key={bill.id}
+    className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4"
+  >
+    <p className="font-medium text-emerald-900">
+      {bill.what || "Paid back"}
+    </p>
 
-                    {recentPaidBacks.map((bill) => {
-                      const payer = getMemberName(
-                        (bill as any).payer_id ||
-                        (bill as any).payerId ||
-                        (bill as any).payer
-                      );
+    <p className="mt-1 text-2xl font-bold text-emerald-700">
+      {currencySymbol}
+      {Number(bill.amount || 0).toFixed(2)}
+    </p>
 
-                      return (
-                        <div
-                          key={`paid-${bill.id}`}
-                          className="flex items-center justify-between rounded-2xl border border-green-200 bg-green-50 p-3"
-                        >
-                          <div>
-                            <p className="font-medium text-green-950">
-                              {bill.what || "Paid back"}
-                            </p>
-
-                            <p className="text-xs text-green-700">
-                              {payer} paid back {getPaidForName(bill)} ·{" "}
-                              {new Date(bill.timestamp * 1000).toLocaleDateString()}
-                            </p>
-                          </div>
-
-                          <span className="font-bold text-green-700">
-                            {currencySymbol}
-                            {Number(bill.amount || 0).toFixed(2)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </>
-                )}
+    <p className="mt-1 text-xs text-emerald-700/70">
+      {new Date(bill.timestamp * 1000).toLocaleDateString()}
+    </p>
+  </div>
+))}
 
                 {recentBills.length === 0 &&
                   recentPaidBacks.length === 0 && (
