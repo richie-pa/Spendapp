@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { notifySplitCloud } from "../lib/notifications";
 import { CospendApi } from "../lib/cospend-api";
 import type { CospendLink, Member, Project } from "../types/cospend";
 import { Button } from "./ui/button";
@@ -131,20 +132,33 @@ const handleSubmit = async (e: React.FormEvent) => {
         return;
       }
 
-      await api.createBill({
-        amount: parseFloat(amount),
-        what: what || "Paid back",
-        comment,
-        payer: payerId,
-        payedFor: receiver,
-        categoryId: paidBackCategory.id,
-        paymentModeId: paymentModeId || 0,
-        repeat: "n",
-        repeatAllActive: 0,
-        repeatFreq: 1,
-        repeatUntil: null,
-        timestamp: Math.floor(Date.now() / 1000),
-      });
+    await api.createBill({
+      amount: parseFloat(amount),
+      what: what || "Paid back",
+      comment,
+      payer: payerId,
+      payedFor: receiver,
+      categoryId: paidBackCategory.id,
+      paymentModeId: paymentModeId || 0,
+      repeat: "n",
+      repeatAllActive: 0,
+      repeatFreq: 1,
+      repeatUntil: null,
+      timestamp: Math.floor(Date.now() / 1000),
+    });
+
+    const payerName =
+      activeMembers.find((m) => m.id === payerId)?.name || "Someone";
+
+    const receiverName =
+      activeMembers.find((m) => m.id === Number(receiver))?.name || "Someone";
+
+    await notifySplitCloud({
+      projectId: link.token,
+      actor: payerName,
+      title: "💸 Payback added",
+      body: `${payerName} paid back ${receiverName} ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
+    });
 
       toast.success("Payback added successfully!");
 
