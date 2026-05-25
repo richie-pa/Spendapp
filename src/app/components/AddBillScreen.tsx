@@ -85,69 +85,122 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+ const paidBackCategory = project?.categories?.find((cat) =>
+  cat.name.toLowerCase().includes("paid back")
+);
 
-    if (!payer) {
-      toast.error("Please select who paid");
+const effectiveCategoryId = markAsPaidBack
+  ? paidBackCategory?.id
+  : categoryId;
+
+const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
+
+  if (!payer) {
+    toast.error(
+      formMode === "payback"
+        ? "Please select who paid back"
+        : "Please select who paid"
+    );
+    return;
+  }
+
+  if (!amount || parseFloat(amount) <= 0) {
+    toast.error("Please enter a valid amount");
+    return;
+  }
+
+  const payerId = parseInt(payer);
+
+  setSubmitting(true);
+  setError("");
+
+  try {
+    const api = new CospendApi(link);
+
+    // PAY BACK MODE
+    if (formMode === "payback") {
+      if (!receiver) {
+        toast.error("Please select who received the payback");
+        setSubmitting(false);
+        return;
+      }
+
+      if (receiver === payer) {
+        toast.error("Payer and receiver cannot be the same person");
+        setSubmitting(false);
+        return;
+      }
+
+      if (!paidBackCategory?.id) {
+        toast.error("Paid Back category was not found");
+        setSubmitting(false);
+        return;
+      }
+
+      await api.createBill({
+        amount: parseFloat(amount),
+        what: what || "Paid back",
+        comment,
+        payer: payerId,
+        payedFor: receiver,
+        categoryId: paidBackCategory.id,
+        paymentModeId: paymentModeId || 0,
+        repeat: "n",
+        repeatAllActive: 0,
+        repeatFreq: 1,
+        repeatUntil: null,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
+
+      toast.success("Payback added successfully!");
+
+      setAmount("");
+      setWhat("");
+      setComment("");
+      setPayer("");
+      setReceiver("");
+      setCategoryId(undefined);
+      setPaymentModeId(undefined);
+      setMarkAsPaidBack(false);
+
+      onBillAdded();
       return;
     }
 
-    const payerId = parseInt(payer);
-
+    // NORMAL BILL MODE
     const participants = selectedMemberList;
 
     if (participants.length === 0) {
       toast.error("Please select at least one participant");
+      setSubmitting(false);
       return;
     }
 
-    setSubmitting(true);
-    setError("");
+    if (customSplit) {
+      const expected = parseFloat(amount);
+      const totalCustom = participants.reduce(
+        (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+        0
+      );
 
-    try {
-      const api = new CospendApi(link);
+      if (Math.abs(totalCustom - expected) > 0.01) {
+        toast.error("Custom split must equal total amount");
+        setSubmitting(false);
+        return;
+      }
 
-      if (customSplit) {
-        const expected = parseFloat(amount);
-        const totalCustom = participants.reduce(
-          (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
-          0
-        );
+      for (const member of participants) {
+        const share = parseFloat(memberAmounts[member.id] || "0");
+        if (share <= 0) continue;
 
-        if (Math.abs(totalCustom - expected) > 0.01) {
-          toast.error("Custom split must equal total amount");
-          setSubmitting(false);
-          return;
-        }
-
-        for (const member of participants) {
-          const share = parseFloat(memberAmounts[member.id] || "0");
-          if (share <= 0) continue;
-
-          await api.createBill({
-            amount: share,
-            what: `${what} - ${member.name}`,
-            comment,
-            payer: payerId,
-            payedFor: member.id.toString(),
-            categoryId: effectiveCategoryId || 0,
-            paymentModeId: paymentModeId || 0,
-            repeat: "n",
-            repeatAllActive: 0,
-            repeatFreq: 1,
-            repeatUntil: null,
-            timestamp: Math.floor(Date.now() / 1000),
-          });
-        }
-      } else {
         await api.createBill({
-          amount: parseFloat(amount),
-          what,
+          amount: share,
+          what: `${what} - ${member.name}`,
           comment,
           payer: payerId,
-          payedFor: participants.map((m) => m.id).join(","),
-          categoryId: categoryId || 0,
+          payedFor: member.id.toString(),
+          categoryId: effectiveCategoryId || 0,
           paymentModeId: paymentModeId || 0,
           repeat: "n",
           repeatAllActive: 0,
@@ -156,25 +209,50 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
           timestamp: Math.floor(Date.now() / 1000),
         });
       }
-
-      toast.success("Bill added successfully!");
-      setAmount("");
-      setWhat("");
-      setComment("");
-      setPayer("");
-      setForEveryone(false);
-      setCustomSplit(false);
-      setMemberAmounts({});
-      setCategoryId(undefined);
-      setMarkAsPaidBack(false);
-      setPaymentModeId(undefined);
-      onBillAdded();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create bill");
-    } finally {
-      setSubmitting(false);
+    } else {
+      await api.createBill({
+        amount: parseFloat(amount),
+        what,
+        comment,
+        payer: payerId,
+        payedFor: participants.map((m) => m.id).join(","),
+        categoryId: categoryId || 0,
+        paymentModeId: paymentModeId || 0,
+        repeat: "n",
+        repeatAllActive: 0,
+        repeatFreq: 1,
+        repeatUntil: null,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
     }
-  };
+
+    toast.success("Bill added successfully!");
+
+    setAmount("");
+    setWhat("");
+    setComment("");
+    setPayer("");
+    setReceiver("");
+    setForEveryone(false);
+    setCustomSplit(false);
+    setMemberAmounts({});
+    setCategoryId(undefined);
+    setMarkAsPaidBack(false);
+    setPaymentModeId(undefined);
+
+    onBillAdded();
+  } catch (err) {
+    setError(
+      err instanceof Error
+        ? err.message
+        : formMode === "payback"
+          ? "Failed to create payback"
+          : "Failed to create bill"
+    );
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   const toggleMember = (memberId: number) => {
     const newSelected = new Set(selectedMembers);
@@ -377,18 +455,28 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   </div>
 )}
 
-    <Button
-      type="button"
-      variant="ghost"
-      className="w-full h-12 rounded-2xl justify-between bg-blue-50 text-blue-700 hover:bg-blue-100"
-      onClick={() => setShowAdvanced(!showAdvanced)}
-    >
-      Advanced options
+    {formMode === "bill" && (
+      <>
+        <Button
+          type="button"
+          variant="ghost"
+          className="w-full h-12 rounded-2xl justify-between bg-blue-50 text-blue-700 hover:bg-blue-100"
+          onClick={() => setShowAdvanced(!showAdvanced)}
+        >
+          Advanced options
 
-      <span className="text-lg">
-        {showAdvanced ? "−" : "+"}
-      </span>
-    </Button>
+          <span className="text-lg">
+            {showAdvanced ? "−" : "+"}
+          </span>
+        </Button>
+
+        {showAdvanced && (
+          <Card className="rounded-3xl border border-slate-200/70 bg-white shadow-sm">
+            {/* advanced content */}
+          </Card>
+        )}
+      </>
+    )}
 
     {showAdvanced && (
       <div className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50/70 p-4">
