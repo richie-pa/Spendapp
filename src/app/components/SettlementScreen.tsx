@@ -335,12 +335,12 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                       </div>
                     </div>
 
-                    <div className="text-right">
-                      <p
-                        className={`text-lg font-bold ${
-                          isPositive ? "text-emerald-600" : "text-red-500"
-                        }`}
-                      >
+                    <div className="shrink-0 text-right">
+                    <p
+                      className={`whitespace-nowrap text-lg font-bold ${
+                        isPositive ? "text-emerald-600" : "text-red-500"
+                      }`}
+                    >
                         {isPositive ? "+" : ""}
                         {money(balance)}
                       </p>
