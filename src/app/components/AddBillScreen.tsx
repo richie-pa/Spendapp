@@ -88,6 +88,16 @@ const effectiveCategoryId = markAsPaidBack
   ? paidBackCategory?.id
   : categoryId;
 
+const getActorName = () => {
+  const currentMemberId = storage.getCurrentMember();
+
+  return (
+    activeMembers.find((m) => m.id === currentMemberId)?.name ||
+    activeMembers.find((m) => m.id === Number(payer))?.name ||
+    "Someone"
+  );
+};
+
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
@@ -148,19 +158,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       timestamp: Math.floor(Date.now() / 1000),
     });
 
-    
-    const currentMemberId = storage.getCurrentMember();
-
-    const actorMember =
-      activeMembers.find((m) => m.id === currentMemberId) ||
-      activeMembers.find((m) => m.id === payerId);
-
-    await notifySplitCloud({
-      projectId: link.token,
-      actor: actorMember?.name || "someone",
-      title: "New movement in SplitCloud",
-      body: `${actorMember?.name || "Someone"} added ${what || "a movement"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
-    });
 
     const payerName =
       activeMembers.find((m) => m.id === payerId)?.name || "Someone";
@@ -230,7 +227,25 @@ const handleSubmit = async (e: React.FormEvent) => {
           repeatUntil: null,
           timestamp: Math.floor(Date.now() / 1000),
         });
+
+        const actor = getActorName();
+
+        await notifySplitCloud({
+          projectId: link.token,
+          actor,
+          title: "New custom split in SplitCloud",
+          body: `${actor} added ${what || "a custom split"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
+        });
       }
+
+      const actor = getActorName();
+
+      await notifySplitCloud({
+        projectId: link.token,
+        actor,
+        title: "New custom split in SplitCloud",
+        body: `${actor} added ${what || "a custom split"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
+      });
     } else {
       await api.createBill({
         amount: parseFloat(amount),
