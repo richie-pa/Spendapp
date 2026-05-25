@@ -166,6 +166,16 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 5);
 
+  const getMemberName = (id: unknown) => {
+    const memberId = Number(id);
+
+    if (!Number.isFinite(memberId)) {
+      return "Unknown";
+    }
+
+    return activeMembers.find((m) => m.id === memberId)?.name || "Unknown";
+  };
+
   const getPaidForName = (bill: Bill) => {
   const raw = bill as any;
 
@@ -177,10 +187,14 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
     raw.ower_id ||
     raw.owerId;
 
-  return getMemberName(Number(String(id).split(",")[0]));
+  if (!id) {
+    return "Unknown";
+  }
+
+  const firstId = String(id).split(",")[0].trim();
+
+  return getMemberName(firstId);
 };
-  const getMemberName = (id: number) =>
-    activeMembers.find((m) => m.id === id)?.name || `Member ${id}`;
 
   return (
     <div className="min-h-dvh space-y-5 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
