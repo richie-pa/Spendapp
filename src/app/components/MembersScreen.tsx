@@ -8,7 +8,8 @@ import { Skeleton } from "./ui/skeleton";
 import { AlertCircle, UserCheck, Users } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
-
+import { subscribeToSplitCloudPush } from "../lib/push";
+import { toast } from "sonner";
 interface MembersScreenProps {
   link: CospendLink;
 }
@@ -192,6 +193,28 @@ export function MembersScreen({ link }: MembersScreenProps) {
           {inactiveMembers.map((member) => renderMemberCard(member, true))}
         </div>
       )}
+
+
+      <Button
+        type="button"
+        className="h-12 w-full rounded-2xl"
+        onClick={async () => {
+          try {
+            await subscribeToSplitCloudPush({
+              link,
+              members: activeMembers,
+            });
+
+            toast.success("Notifications enabled");
+          } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to enable notifications");
+          }
+        }}
+      >
+        Enable notifications
+      </Button>
     </div>
+
+    
   );
 }
