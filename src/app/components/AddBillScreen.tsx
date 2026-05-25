@@ -26,6 +26,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const [what, setWhat] = useState("");
   const [comment, setComment] = useState("");
   const [payer, setPayer] = useState("");
+  const [formMode, setFormMode] = useState<"bill" | "payback">("bill");
   const [forEveryone, setForEveryone] = useState(true);
   const [selectedMembers, setSelectedMembers] = useState<Set<number>>(new Set());
   const [categoryId, setCategoryId] = useState<number | undefined>();
@@ -44,6 +45,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const currencySymbol = project?.currencyname || "€";
   const selectedMemberList = activeMembers.filter((m) => selectedMembers.has(m.id));
   const totalAmount = parseFloat(amount || "0");
+  const [receiver, setReceiver] = useState("");
   const customTotal = selectedMemberList.reduce(
     (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
     0
@@ -206,22 +208,67 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   return (
     <div className="min-h-dvh overflow-y-auto bg-slate-50 px-4 pt-5 pb-28 space-y-5">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-blue-600">New expense</p>
-        <h1 className="text-3xl font-bold tracking-tight">Add Bill</h1>
-        <p className="text-sm text-slate-500">Record a new expense with a clean mobile flow.</p>
-      </div>
+
+        <p className="text-sm font-semibold text-blue-600">
+  {formMode === "payback" ? "Money returned" : "New expense"}
+</p>
+
+<h1 className="text-3xl font-bold tracking-tight">
+  {formMode === "payback" ? "Pay Back" : "Add Bill"}
+</h1>
+
+<p className="text-sm text-slate-500">
+  {formMode === "payback"
+    ? "Record money paid back between two people."
+    : "Record a new expense with a clean mobile flow."}
+</p>
+
+         </div>
+      
 
       <form onSubmit={handleSubmit} className="space-y-5">
+
+<div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-1 shadow-sm">
+  <Button
+    type="button"
+    variant={formMode === "bill" ? "default" : "ghost"}
+    className="rounded-xl"
+    onClick={() => {
+      setFormMode("bill");
+      setMarkAsPaidBack(false);
+    }}
+  >
+    Add Bill
+  </Button>
+
+  <Button
+    type="button"
+    variant={formMode === "payback" ? "default" : "ghost"}
+    className="rounded-xl"
+    onClick={() => {
+      setFormMode("payback");
+      setMarkAsPaidBack(true);
+      setCustomSplit(false);
+      setForEveryone(false);
+      setMemberAmounts({});
+    }}
+  >
+    Pay Back
+  </Button>
+</div>
+
+
+
 <Card className="rounded-[2rem] border border-slate-200/70 bg-white shadow-xl shadow-slate-200/60 overflow-hidden">
   <CardHeader className="space-y-1 border-b border-slate-100 px-5 pb-4 pt-5">
 <CardTitle>
-  {markAsPaidBack ? "Pay Back" : "Bill Details"}
+  {formMode === "payback" ? "Pay Back Details" : "Bill Details"}
 </CardTitle>
 
   <CardDescription>
-    {markAsPaidBack
-      ? "Record a reimbursement or money returned"
-      : "Add expense information"}
+      {formMode === "payback"
+        ? "Choose who paid back whom and how much."
+        : "Add expense information"}
   </CardDescription>
   </CardHeader>
 
@@ -306,14 +353,30 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
         </SelectContent>
       </Select>
     </div>
-    <Button
-      type="button"
-      variant={markAsPaidBack ? "default" : "outline"}
-      className="h-12 w-full rounded-2xl justify-start"
-      onClick={() => setMarkAsPaidBack(!markAsPaidBack)}
-    >
-      💸 Mark as Paid Back
-    </Button>
+
+    {formMode === "payback" && (
+  <div className="space-y-2">
+    <Label htmlFor="receiver">Paid to</Label>
+
+    <Select value={receiver} onValueChange={setReceiver}>
+      <SelectTrigger
+        id="receiver"
+        className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-inner"
+      >
+        <SelectValue placeholder="Select receiver" />
+      </SelectTrigger>
+
+      <SelectContent className="rounded-2xl border-slate-200">
+        {activeMembers.map((member) => (
+          <SelectItem key={member.id} value={member.id.toString()}>
+            {member.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  </div>
+)}
+
     <Button
       type="button"
       variant="ghost"
@@ -347,7 +410,9 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
                 </SelectTrigger>
 
                 <SelectContent className="rounded-2xl border-slate-200">
-                  {project.categories.map((cat) => (
+                  {project.categories
+            .filter((cat) => !cat.name.toLowerCase().includes("paid back"))
+            .map((cat) => (
                     <SelectItem
                       key={cat.id}
                       value={cat.id.toString()}
@@ -401,8 +466,8 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   </CardContent>
 </Card>
 
-        <Card className="rounded-3xl border-0 bg-white shadow-sm">
-          <CardHeader className="space-y-1 pb-3">
+      {formMode === "bill" && (
+        <Card className="rounded-3xl border-0 bg-white shadow-sm">          <CardHeader className="space-y-1 pb-3">
             <CardTitle className="text-xl">Participants</CardTitle>
             <p className="text-sm text-muted-foreground">Choose equal or custom split, then tap the people involved.</p>
           </CardHeader>
@@ -537,6 +602,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
             </div>
           </CardContent>
         </Card>
+        )}
 
         {error && (
           <Alert variant="destructive" className="rounded-3xl border-0 shadow-sm">
