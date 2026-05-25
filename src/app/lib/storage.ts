@@ -1,23 +1,50 @@
 import type { CospendLink } from "../types/cospend";
 
-const STORAGE_KEY = "cospend_link";
+const CURRENT_LINK_KEY = "cospend_link";
+const PROJECTS_KEY = "cospend_projects";
+
+export interface SavedProject {
+  id: string;
+  name: string;
+  link: CospendLink;
+}
 
 export const storage = {
-  saveLink(link: CospendLink): void {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(link));
-  },
-
   getLink(): CospendLink | null {
-    const data = localStorage.getItem(STORAGE_KEY);
-    if (!data) return null;
-    try {
-      return JSON.parse(data);
-    } catch {
-      return null;
-    }
+    const raw = localStorage.getItem(CURRENT_LINK_KEY);
+    return raw ? JSON.parse(raw) : null;
   },
 
-  clearLink(): void {
-    localStorage.removeItem(STORAGE_KEY);
+  saveLink(link: CospendLink) {
+    localStorage.setItem(CURRENT_LINK_KEY, JSON.stringify(link));
+  },
+
+  clearLink() {
+    localStorage.removeItem(CURRENT_LINK_KEY);
+  },
+
+  getProjects(): SavedProject[] {
+    const raw = localStorage.getItem(PROJECTS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  },
+
+  saveProject(project: SavedProject) {
+    const projects = this.getProjects();
+    const exists = projects.some((p) => p.id === project.id);
+
+    const next = exists
+      ? projects.map((p) => (p.id === project.id ? project : p))
+      : [...projects, project];
+
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(next));
+  },
+
+  removeProject(id: string) {
+    const next = this.getProjects().filter((p) => p.id !== id);
+    localStorage.setItem(PROJECTS_KEY, JSON.stringify(next));
+  },
+
+  switchProject(project: SavedProject) {
+    this.saveLink(project.link);
   },
 };
