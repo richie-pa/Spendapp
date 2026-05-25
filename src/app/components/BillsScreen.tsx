@@ -174,8 +174,6 @@ const getPaidForNames = (bill: Bill) => {
   return "";
 };
 
-console.log("BILL RAW:", bill);
-
   const isPaidBackBill = (bill: Bill) => {
     const categoryName = getCategoryName(bill).toLowerCase();
 
