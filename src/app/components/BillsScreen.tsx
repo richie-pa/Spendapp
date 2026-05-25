@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
+import { notifySplitCloud } from "../lib/notifications";
+import { storage } from "../lib/storage";
 import type { CospendLink, Bill, Project } from "../types/cospend";
 import { Card, CardContent } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
@@ -79,7 +81,27 @@ export function BillsScreen({ link }: BillsScreenProps) {
 
     try {
       const api = new CospendApi(link);
+      const actor = getCurrentMemberName();
+      const recipients = getBillNotificationRecipients(billToDelete);
+      const payer = getPayer(billToDelete);
+      const paidForNames = getPaidForNames(billToDelete);
+
       await api.deleteBill(billToDelete.id);
+
+      try {
+        await notifySplitCloud({
+          projectId: link.token,
+          actor,
+          recipients,
+          title: "🗑️ Movement deleted",
+          body: `${actor} deleted ${billToDelete.what || "a movement"} for ${currencySymbol}${Number(billToDelete.amount || 0).toFixed(2)}${
+            payer?.name ? ` paid by ${payer.name}` : ""
+          }${paidForNames ? ` for ${paidForNames}` : ""}`,
+        });
+      } catch (notificationError) {
+        console.warn("Delete notification failed", notificationError);
+      }
+
       toast.success("Movement deleted");
       setBillToDelete(null);
       await loadData();
@@ -115,6 +137,64 @@ export function BillsScreen({ link }: BillsScreenProps) {
     return getMemberById(Number(payerId));
   };
 
+  const getCurrentMemberName = () => {
+    const currentMemberId = storage.getCurrentMember();
+    const currentMember = project?.members?.find(
+      (member) => member.id === currentMemberId
+    );
+
+    return currentMember?.name || "Someone";
+  };
+
+  const getPaidForMembers = (bill: Bill) => {
+    const raw = bill as any;
+
+    const rawIds =
+      raw.payed_for ||
+      raw.payedFor ||
+      raw.payed_for_ids ||
+      raw.payedForIds ||
+      raw.ower_ids ||
+      raw.owers ||
+      raw.payed_for_names ||
+      raw.payedForNames ||
+      "";
+
+    if (Array.isArray(rawIds)) {
+      return rawIds
+        .map((item) => {
+          if (typeof item === "object") {
+            return item.name || getMemberById(Number(item.id))?.name;
+          }
+
+          return getMemberById(Number(item))?.name;
+        })
+        .filter(Boolean) as string[];
+    }
+
+    if (typeof rawIds === "string" && rawIds.includes(",")) {
+      return rawIds
+        .split(",")
+        .map((id) => getMemberById(Number(id.trim()))?.name)
+        .filter(Boolean) as string[];
+    }
+
+    if (rawIds) {
+      const memberName = getMemberById(Number(rawIds))?.name || String(rawIds);
+      return memberName ? [memberName] : [];
+    }
+
+    return [];
+  };
+
+  const getBillNotificationRecipients = (bill: Bill) => {
+    const payer = getPayer(bill);
+
+    return Array.from(
+      new Set([payer?.name, ...getPaidForMembers(bill)].filter(Boolean) as string[])
+    );
+  };
+
   const getCategoryName = (bill: Bill) => {
     const raw = bill as any;
 
@@ -133,45 +213,7 @@ export function BillsScreen({ link }: BillsScreenProps) {
   };
 
 const getPaidForNames = (bill: Bill) => {
-  const raw = bill as any;
-
-  const rawIds =
-    raw.payed_for ||
-    raw.payedFor ||
-    raw.payed_for_ids ||
-    raw.payedForIds ||
-    raw.ower_ids ||
-    raw.owers ||
-    raw.payed_for_names ||
-    raw.payedForNames ||
-    "";
-
-  if (Array.isArray(rawIds)) {
-    return rawIds
-      .map((item) => {
-        if (typeof item === "object") {
-          return item.name || getMemberById(Number(item.id))?.name;
-        }
-
-        return getMemberById(Number(item))?.name;
-      })
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  if (typeof rawIds === "string" && rawIds.includes(",")) {
-    return rawIds
-      .split(",")
-      .map((id) => getMemberById(Number(id.trim()))?.name)
-      .filter(Boolean)
-      .join(", ");
-  }
-
-  if (rawIds) {
-    return getMemberById(Number(rawIds))?.name || String(rawIds);
-  }
-
-  return "";
+  return getPaidForMembers(bill).join(", ");
 };
 
   const isPaidBackBill = (bill: Bill) => {
