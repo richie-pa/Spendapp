@@ -26,10 +26,17 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
       const parsedLink = CospendApi.parseCospendLink(link.trim());
       const api = new CospendApi(parsedLink);
 
-      await api.getProject();
+    const project = await api.getProject();
 
-      storage.saveLink(parsedLink);
-      onSetupComplete();
+    storage.saveLink(parsedLink);
+
+    storage.saveProject({
+      id: parsedLink.token,
+      name: project.name || "Unnamed project",
+      link: parsedLink,
+    });
+
+    onSetupComplete();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to connect");
     } finally {
@@ -52,7 +59,7 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="link">Scplitcloud Link</Label>
+              <Label htmlFor="link">Splitcloud Link</Label>
               <Input
                 id="link"
                 type="text"
