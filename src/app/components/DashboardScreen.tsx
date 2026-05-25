@@ -344,38 +344,102 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         <CardContent className="space-y-4 p-5">
           <div className="flex items-center gap-2">
             <CalendarDays className="h-5 w-5 text-blue-600" />
+
             <h2 className="text-xl font-bold text-slate-900">
-              Recent expenses
+              Recent activity
             </h2>
           </div>
 
-          {recentBills.length > 0 ? (
-            recentBills.map((bill) => (
-              <div
-                key={bill.id}
-                className="flex items-center justify-between rounded-2xl bg-slate-50 p-3"
-              >
-                <div>
-                  <p className="font-medium text-slate-900">
-                    {bill.what || "Untitled"}
-                  </p>
+          {(() => {
+            const recentPaidBacks = [...bills]
+              .filter((bill) => isPaidBackBill(bill))
+              .sort((a, b) => b.timestamp - a.timestamp)
+              .slice(0, 3);
 
-                  <p className="text-xs text-slate-500">
-                    {new Date(bill.timestamp * 1000).toLocaleDateString()}
-                  </p>
-                </div>
+            return (
+              <div className="space-y-3">
+                {recentBills.length > 0 &&
+                  recentBills.map((bill) => {
+                    const payer = getMemberName(
+                      (bill as any).payer_id ||
+                      (bill as any).payerId ||
+                      (bill as any).payer
+                    );
 
-                <span className="font-bold text-slate-900">
-                  {currencySymbol}
-                  {Number(bill.amount || 0).toFixed(2)}
-                </span>
+                    return (
+                      <div
+                        key={bill.id}
+                        className="flex items-center justify-between rounded-2xl bg-slate-50 p-3"
+                      >
+                        <div>
+                          <p className="font-medium text-slate-900">
+                            {bill.what || "Untitled"}
+                          </p>
+
+                          <p className="text-xs text-slate-500">
+                            Paid by {payer} ·{" "}
+                            {new Date(bill.timestamp * 1000).toLocaleDateString()}
+                          </p>
+                        </div>
+
+                        <span className="font-bold text-slate-900">
+                          {currencySymbol}
+                          {Number(bill.amount || 0).toFixed(2)}
+                        </span>
+                      </div>
+                    );
+                  })}
+
+                {recentPaidBacks.length > 0 && (
+                  <>
+                    <div className="pt-2">
+                      <p className="text-sm font-semibold text-green-700">
+                        Recent paid backs
+                      </p>
+                    </div>
+
+                    {recentPaidBacks.map((bill) => {
+                      const payer = getMemberName(
+                        (bill as any).payer_id ||
+                        (bill as any).payerId ||
+                        (bill as any).payer
+                      );
+
+                      return (
+                        <div
+                          key={`paid-${bill.id}`}
+                          className="flex items-center justify-between rounded-2xl border border-green-200 bg-green-50 p-3"
+                        >
+                          <div>
+                            <p className="font-medium text-green-950">
+                              {bill.what || "Paid back"}
+                            </p>
+
+                            <p className="text-xs text-green-700">
+                              Paid back by {payer} ·{" "}
+                              {new Date(bill.timestamp * 1000).toLocaleDateString()}
+                            </p>
+                          </div>
+
+                          <span className="font-bold text-green-700">
+                            {currencySymbol}
+                            {Number(bill.amount || 0).toFixed(2)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </>
+                )}
+
+                {recentBills.length === 0 &&
+                  recentPaidBacks.length === 0 && (
+                    <p className="text-sm text-slate-500">
+                      No activity yet.
+                    </p>
+                  )}
               </div>
-            ))
-          ) : (
-            <p className="text-sm text-slate-500">
-              No expenses yet.
-            </p>
-          )}
+            );
+          })()}
         </CardContent>
       </Card>
 
