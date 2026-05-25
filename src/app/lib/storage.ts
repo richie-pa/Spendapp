@@ -14,6 +14,14 @@ export const storage = {
     const raw = localStorage.getItem(CURRENT_LINK_KEY);
     return raw ? JSON.parse(raw) : null;
   },
+  saveCurrentMember(memberId: number) {
+    localStorage.setItem("splitcloud_current_member", String(memberId));
+  },
+
+  getCurrentMember() {
+    const value = localStorage.getItem("splitcloud_current_member");
+    return value ? Number(value) : null;
+  },
 
   saveLink(link: CospendLink) {
     localStorage.setItem(CURRENT_LINK_KEY, JSON.stringify(link));
@@ -48,3 +56,4 @@ export const storage = {
     this.saveLink(project.link);
   },
 };
+
