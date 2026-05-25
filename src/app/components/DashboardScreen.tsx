@@ -185,10 +185,18 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
       raw.payedForIds ||
       raw.ower_ids ||
       raw.owers ||
+      raw.payed_for_names ||
+      raw.payedForNames ||
       "";
 
     const idList = Array.isArray(rawIds)
-      ? rawIds.map(Number)
+      ? rawIds.map((item) => {
+          if (typeof item === "object") {
+            return Number(item.id);
+          }
+
+          return Number(item);
+        })
       : String(rawIds)
           .split(",")
           .map((id) => Number(id.trim()))
