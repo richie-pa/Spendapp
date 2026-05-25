@@ -3,6 +3,7 @@ const BACKEND_URL = "https://push.paucar.eu";
 export async function notifySplitCloud(params: {
   projectId: string;
   actor: string;
+  recipients: string[];
   title: string;
   body: string;
 }) {

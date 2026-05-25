@@ -103,12 +103,14 @@ const getMemberName = (memberId: number | string) =>
 
 const sendNotification = async (params: {
   actor: string;
+  recipients: string[];
   title: string;
   body: string;
 }) => {
   await notifySplitCloud({
     projectId: link.token,
     actor: params.actor,
+    recipients: params.recipients,
     title: params.title,
     body: params.body,
   });
@@ -179,6 +181,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       await sendNotification({
         actor: payerName,
+        recipients: [receiverName],
         title: "💸 Payback added",
         body: `${payerName} paid back ${receiverName} ${currencySymbol}${numericAmount.toFixed(2)}`,
       });
@@ -261,6 +264,9 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     await sendNotification({
       actor: payerName,
+      recipients: participants
+        .filter((member) => member.id !== payerId)
+        .map((member) => member.name),
       title: customSplit ? "🧾 New custom split added" : "🧾 New bill added",
       body: `${payerName} added ${what || "a bill"} for ${currencySymbol}${numericAmount.toFixed(2)}`,
     });
