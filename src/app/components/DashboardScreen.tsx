@@ -112,10 +112,8 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
   };
 
   const expenseBills = bills.filter((bill) => !isPaidBackBill(bill));
-  const paidBackBills = bills
-  .filter(isPaidBackBill)
-  .sort((a, b) => b.timestamp - a.timestamp)
-  .slice(0, 2);
+
+
 
   const now = new Date();
 
@@ -162,7 +160,8 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         )
       : null;
 
-  const recentBills = [...expenseBills]
+  const recentBills = [...bills]
+    .filter((bill) => !bill.deleted)
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 5);
 
