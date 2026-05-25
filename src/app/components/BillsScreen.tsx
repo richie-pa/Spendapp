@@ -238,15 +238,16 @@ const getPaidForNames = (bill: Bill) => {
           </p>
         </div>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={loadData}
-          disabled={loading}
-          className="rounded-2xl"
-        >
-          <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
-        </Button>
+    <Button
+      variant="ghost"
+      size="icon"
+      className="shrink-0 rounded-2xl"
+      onClick={() =>
+        toast.error("Restore is only available from the logged-in Cospend app")
+      }
+    >
+      <RotateCcw className="h-4 w-4 text-slate-400" />
+    </Button>
       </div>
 
       <div className="rounded-3xl border border-slate-200 bg-white p-3 shadow-sm">
