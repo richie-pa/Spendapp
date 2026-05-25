@@ -1,4 +1,4 @@
-const BACKEND_URL = "https://push.paucar.eu/";
+const BACKEND_URL = "https://push.paucar.eu";
 
 export async function notifySplitCloud(params: {
   projectId: string;
@@ -6,18 +6,23 @@ export async function notifySplitCloud(params: {
   title: string;
   body: string;
 }) {
-  try {
-    await fetch(`${BACKEND_URL}/splitcloud/notify`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        ...params,
-        url: "https://cloud.paucar.eu/splitcloud",
-      }),
-    });
-  } catch (err) {
-    console.warn("Notification failed", err);
+  const response = await fetch(`${BACKEND_URL}/splitcloud/notify`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      ...params,
+      url: "https://cloud.paucar.eu/splitcloud",
+    }),
+  });
+
+  if (!response.ok) {
+    const message = await response.text().catch(() => "");
+    throw new Error(
+      `Notification failed: ${response.status} ${response.statusText}${message ? ` - ${message}` : ""}`
+    );
   }
+
+  return response.json().catch(() => null);
 }

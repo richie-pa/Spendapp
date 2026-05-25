@@ -98,6 +98,22 @@ const getActorName = () => {
   );
 };
 
+const getMemberName = (memberId: number | string) =>
+  activeMembers.find((m) => m.id === Number(memberId))?.name || "Someone";
+
+const sendNotification = async (params: {
+  actor: string;
+  title: string;
+  body: string;
+}) => {
+  await notifySplitCloud({
+    projectId: link.token,
+    actor: params.actor,
+    title: params.title,
+    body: params.body,
+  });
+};
+
 const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
@@ -158,13 +174,10 @@ const handleSubmit = async (e: React.FormEvent) => {
         timestamp: Math.floor(Date.now() / 1000),
       });
 
-      const payerName =
-        activeMembers.find((m) => m.id === payerId)?.name || "Someone";
-      const receiverName =
-        activeMembers.find((m) => m.id === Number(receiver))?.name || "Someone";
+      const payerName = getMemberName(payerId);
+      const receiverName = getMemberName(receiver);
 
-      await notifySplitCloud({
-        projectId: link.token,
+      await sendNotification({
         actor: payerName,
         title: "💸 Payback added",
         body: `${payerName} paid back ${receiverName} ${currencySymbol}${numericAmount.toFixed(2)}`,
@@ -244,13 +257,11 @@ const handleSubmit = async (e: React.FormEvent) => {
       });
     }
 
-    const payerName =
-      activeMembers.find((m) => m.id === payerId)?.name || getActorName();
+    const payerName = getMemberName(payerId);
 
-    await notifySplitCloud({
-      projectId: link.token,
+    await sendNotification({
       actor: payerName,
-      title: "🧾 New bill added",
+      title: customSplit ? "🧾 New custom split added" : "🧾 New bill added",
       body: `${payerName} added ${what || "a bill"} for ${currencySymbol}${numericAmount.toFixed(2)}`,
     });
 
