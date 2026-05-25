@@ -371,87 +371,74 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         </CardContent>
       </Card>
 
-      <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
-        <CardContent className="space-y-4 p-5">
-          <div className="flex items-center gap-2">
-            <CalendarDays className="h-5 w-5 text-blue-600" />
+<Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
+  <CardContent className="space-y-4 p-5">
+    <div className="flex items-center gap-2">
+      <CalendarDays className="h-5 w-5 text-blue-600" />
 
-            <h2 className="text-xl font-bold text-slate-900">
-              Recent activity
-            </h2>
-          </div>
+      <h2 className="text-xl font-bold text-slate-900">
+        Recent activity
+      </h2>
+    </div>
 
-          {(() => {
-            const recentPaidBacks = [...bills]
-              .filter((bill) => isPaidBackBill(bill))
-              .sort((a, b) => b.timestamp - a.timestamp)
-              .slice(0, 3);
+    <div className="space-y-3">
+      {recentBills.length > 0 ? (
+        recentBills.map((bill) => {
+          const isPaidBack = isPaidBackBill(bill);
 
-            return (
-              <div className="space-y-3">
-                {recentBills.length > 0 &&
-                  recentBills.map((bill) => {
-                    const payer = getMemberName(
-                      (bill as any).payer_id ||
-                      (bill as any).payerId ||
-                      (bill as any).payer
-                    );
+          const payer = getMemberName(
+            (bill as any).payer_id ||
+              (bill as any).payerId ||
+              (bill as any).payer
+          );
 
-                    return (
-                      <div
-                        key={bill.id}
-                        className="flex items-center justify-between rounded-2xl bg-slate-50 p-3"
-                      >
-                        <div>
-                          <p className="font-medium text-slate-900">
-                            {bill.what || "Untitled"}
-                          </p>
+          return (
+            <div
+              key={bill.id}
+              className={`flex items-center justify-between rounded-2xl p-3 ${
+                isPaidBack ? "bg-emerald-50" : "bg-slate-50"
+              }`}
+            >
+              <div>
+                <p
+                  className={`font-medium ${
+                    isPaidBack ? "text-emerald-800" : "text-slate-900"
+                  }`}
+                >
+                  {isPaidBack
+                    ? `${payer} paid back ${getPaidForName(bill)}`
+                    : bill.what || "Untitled"}
+                </p>
 
-                          <p className="text-xs text-slate-500">
-                            Paid by {payer} ·{" "}
-                            {new Date(bill.timestamp * 1000).toLocaleDateString()}
-                          </p>
-                        </div>
-
-                        <span className="font-bold text-slate-900">
-                          {currencySymbol}
-                          {Number(bill.amount || 0).toFixed(2)}
-                        </span>
-                      </div>
-                    );
-                  })}
-
-{paidBackBills.map((bill) => (
-  <div
-    key={bill.id}
-    className="rounded-3xl border border-emerald-100 bg-emerald-50 p-4"
-  >
-    <p className="font-medium text-emerald-900">
-      {bill.what || "Paid back"}
-    </p>
-
-    <p className="mt-1 text-2xl font-bold text-emerald-700">
-      {currencySymbol}
-      {Number(bill.amount || 0).toFixed(2)}
-    </p>
-
-    <p className="mt-1 text-xs text-emerald-700/70">
-      {new Date(bill.timestamp * 1000).toLocaleDateString()}
-    </p>
-  </div>
-))}
-
-                {recentBills.length === 0 &&
-                  recentPaidBacks.length === 0 && (
-                    <p className="text-sm text-slate-500">
-                      No activity yet.
-                    </p>
-                  )}
+                <p
+                  className={`text-xs ${
+                    isPaidBack ? "text-emerald-700/70" : "text-slate-500"
+                  }`}
+                >
+                  {isPaidBack ? "Paid Back" : `Paid by ${payer}`} ·{" "}
+                  {new Date(bill.timestamp * 1000).toLocaleDateString()}
+                </p>
               </div>
-            );
-          })()}
-        </CardContent>
-      </Card>
+
+              <span
+                className={`font-bold ${
+                  isPaidBack ? "text-emerald-700" : "text-slate-900"
+                }`}
+              >
+                {currencySymbol}
+                {Number(bill.amount || 0).toFixed(2)}
+              </span>
+            </div>
+          );
+        })
+      ) : (
+        <p className="text-sm text-slate-500">
+          No activity yet.
+        </p>
+      )}
+    </div>
+  </CardContent>
+</Card>
 
       <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
         <CardContent className="space-y-4 p-5">
