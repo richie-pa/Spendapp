@@ -115,7 +115,8 @@ const handleSubmit = async (e: React.FormEvent) => {
     return;
   }
 
-  const payerId = parseInt(payer);
+  const payerId = parseInt(payer, 10);
+  const numericAmount = parseFloat(amount);
 
   setSubmitting(true);
   setError("");
@@ -123,7 +124,6 @@ const handleSubmit = async (e: React.FormEvent) => {
   try {
     const api = new CospendApi(link);
 
-    // PAY BACK MODE
     if (formMode === "payback") {
       if (!receiver) {
         toast.error("Please select who received the payback");
@@ -143,34 +143,32 @@ const handleSubmit = async (e: React.FormEvent) => {
         return;
       }
 
-    await api.createBill({
-      amount: parseFloat(amount),
-      what: what || "Paid back",
-      comment,
-      payer: payerId,
-      payedFor: receiver,
-      categoryId: paidBackCategory.id,
-      paymentModeId: paymentModeId || 0,
-      repeat: "n",
-      repeatAllActive: 0,
-      repeatFreq: 1,
-      repeatUntil: null,
-      timestamp: Math.floor(Date.now() / 1000),
-    });
+      await api.createBill({
+        amount: numericAmount,
+        what: what || "Paid back",
+        comment,
+        payer: payerId,
+        payedFor: receiver,
+        categoryId: paidBackCategory.id,
+        paymentModeId: paymentModeId || 0,
+        repeat: "n",
+        repeatAllActive: 0,
+        repeatFreq: 1,
+        repeatUntil: null,
+        timestamp: Math.floor(Date.now() / 1000),
+      });
 
+      const payerName =
+        activeMembers.find((m) => m.id === payerId)?.name || "Someone";
+      const receiverName =
+        activeMembers.find((m) => m.id === Number(receiver))?.name || "Someone";
 
-    const payerName =
-      activeMembers.find((m) => m.id === payerId)?.name || "Someone";
-
-    const receiverName =
-      activeMembers.find((m) => m.id === Number(receiver))?.name || "Someone";
-
-    await notifySplitCloud({
-      projectId: link.token,
-      actor: payerName,
-      title: "💸 Payback added",
-      body: `${payerName} paid back ${receiverName} ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
-    });
+      await notifySplitCloud({
+        projectId: link.token,
+        actor: payerName,
+        title: "💸 Payback added",
+        body: `${payerName} paid back ${receiverName} ${currencySymbol}${numericAmount.toFixed(2)}`,
+      });
 
       toast.success("Payback added successfully!");
 
@@ -187,7 +185,6 @@ const handleSubmit = async (e: React.FormEvent) => {
       return;
     }
 
-    // NORMAL BILL MODE
     const participants = selectedMemberList;
 
     if (participants.length === 0) {
@@ -197,13 +194,12 @@ const handleSubmit = async (e: React.FormEvent) => {
     }
 
     if (customSplit) {
-      const expected = parseFloat(amount);
       const totalCustom = participants.reduce(
-        (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+        (sum, member) => sum + parseFloat(memberAmounts[member.id] || "0"),
         0
       );
 
-      if (Math.abs(totalCustom - expected) > 0.01) {
+      if (Math.abs(totalCustom - numericAmount) > 0.01) {
         toast.error("Custom split must equal total amount");
         setSubmitting(false);
         return;
@@ -211,11 +207,14 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       for (const member of participants) {
         const share = parseFloat(memberAmounts[member.id] || "0");
-        if (share <= 0) continue;
+
+        if (share <= 0) {
+          continue;
+        }
 
         await api.createBill({
           amount: share,
-          what: `${what} - ${member.name}`,
+          what: `${what || "Bill"} - ${member.name}`,
           comment,
           payer: payerId,
           payedFor: member.id.toString(),
@@ -228,15 +227,14 @@ const handleSubmit = async (e: React.FormEvent) => {
           timestamp: Math.floor(Date.now() / 1000),
         });
       }
-
     } else {
-          await api.createBill({
-        amount: parseFloat(amount),
+      await api.createBill({
+        amount: numericAmount,
         what,
         comment,
         payer: payerId,
         payedFor: participants.map((m) => m.id).join(","),
-        categoryId: categoryId || 0,
+        categoryId: effectiveCategoryId || 0,
         paymentModeId: paymentModeId || 0,
         repeat: "n",
         repeatAllActive: 0,
@@ -244,16 +242,17 @@ const handleSubmit = async (e: React.FormEvent) => {
         repeatUntil: null,
         timestamp: Math.floor(Date.now() / 1000),
       });
+    }
 
-        const payerName =
-          activeMembers.find((m) => m.id === payerId)?.name || "Someone";
+    const payerName =
+      activeMembers.find((m) => m.id === payerId)?.name || getActorName();
 
-        await notifySplitCloud({
-          projectId: link.token,
-          actor: payerName,
-          title: "🧾 New bill added",
-          body: `${payerName} added ${what || "a bill"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
-        });
+    await notifySplitCloud({
+      projectId: link.token,
+      actor: payerName,
+      title: "🧾 New bill added",
+      body: `${payerName} added ${what || "a bill"} for ${currencySymbol}${numericAmount.toFixed(2)}`,
+    });
 
     toast.success("Bill added successfully!");
 
