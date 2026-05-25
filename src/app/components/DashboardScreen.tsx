@@ -162,6 +162,19 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
     .sort((a, b) => b.timestamp - a.timestamp)
     .slice(0, 5);
 
+  const getPaidForName = (bill: Bill) => {
+  const raw = bill as any;
+
+  const id =
+    raw.payed_for ||
+    raw.payedFor ||
+    raw.payed_for_ids ||
+    raw.payedForIds ||
+    raw.ower_id ||
+    raw.owerId;
+
+  return getMemberName(Number(String(id).split(",")[0]));
+};
   const getMemberName = (id: number) =>
     activeMembers.find((m) => m.id === id)?.name || `Member ${id}`;
 
@@ -416,7 +429,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
                             </p>
 
                             <p className="text-xs text-green-700">
-                              Paid back by {payer} ·{" "}
+                              {payer} paid back {getPaidForName(bill)} ·{" "}
                               {new Date(bill.timestamp * 1000).toLocaleDateString()}
                             </p>
                           </div>
