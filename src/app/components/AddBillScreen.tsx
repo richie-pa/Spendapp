@@ -22,7 +22,6 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
   const [amount, setAmount] = useState("");
   const [what, setWhat] = useState("");
   const [comment, setComment] = useState("");
@@ -34,6 +33,8 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const [customSplit, setCustomSplit] = useState(false);
   const [memberAmounts, setMemberAmounts] = useState<Record<number, string>>({});
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [markAsPaidBack, setMarkAsPaidBack] = useState(false);
+
 
   useEffect(() => {
     loadProject();
@@ -50,6 +51,13 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const remaining = totalAmount - customTotal;
   const equalShare =
     selectedMemberList.length > 0 ? totalAmount / selectedMemberList.length : 0;
+  const paidBackCategory = project?.categories?.find((cat) =>
+      cat.name.toLowerCase().includes("paid back")
+    );
+
+  const effectiveCategoryId = markAsPaidBack
+      ? paidBackCategory?.id
+      : categoryId;
   const splitStateTone =
     Math.abs(remaining) < 0.01
       ? "border-emerald-200 bg-emerald-50 text-emerald-700"
@@ -121,7 +129,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
             comment,
             payer: payerId,
             payedFor: member.id.toString(),
-            categoryId: categoryId || 0,
+            categoryId: effectiveCategoryId || 0,
             paymentModeId: paymentModeId || 0,
             repeat: "n",
             repeatAllActive: 0,
@@ -156,6 +164,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       setCustomSplit(false);
       setMemberAmounts({});
       setCategoryId(undefined);
+      setMarkAsPaidBack(false);
       setPaymentModeId(undefined);
       onBillAdded();
     } catch (err) {
@@ -295,7 +304,14 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
         </SelectContent>
       </Select>
     </div>
-
+    <Button
+      type="button"
+      variant={markAsPaidBack ? "default" : "outline"}
+      className="h-12 w-full rounded-2xl justify-start"
+      onClick={() => setMarkAsPaidBack(!markAsPaidBack)}
+    >
+      💸 Mark as Paid Back
+    </Button>
     <Button
       type="button"
       variant="ghost"
