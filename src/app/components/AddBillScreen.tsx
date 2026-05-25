@@ -245,15 +245,15 @@ const handleSubmit = async (e: React.FormEvent) => {
         timestamp: Math.floor(Date.now() / 1000),
       });
 
-      const actor = getActorName();
+        const payerName =
+          activeMembers.find((m) => m.id === payerId)?.name || "Someone";
 
-      await notifySplitCloud({
-        projectId: link.token,
-        actor,
-        title: "New bill in SplitCloud",
-        body: `${actor} added ${what || "a bill"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
-      });
-    }
+        await notifySplitCloud({
+          projectId: link.token,
+          actor: payerName,
+          title: "🧾 New bill added",
+          body: `${payerName} added ${what || "a bill"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
+        });
 
     toast.success("Bill added successfully!");
 
