@@ -175,22 +175,29 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
     return activeMembers.find((m) => m.id === memberId)?.name || "Unknown";
   };
 
-  const getPaidForName = (bill: Bill) => {
+  const getPaidForNames = (bill: Bill) => {
     const raw = bill as any;
 
-    const id =
+    const rawIds =
       raw.payed_for ||
       raw.payedFor ||
-      raw.ower_id ||
-      raw.owerId ||
-      raw.ower;
+      raw.payed_for_ids ||
+      raw.payedForIds ||
+      raw.ower_ids ||
+      raw.owers ||
+      "";
 
-    if (id) {
-      const firstId = String(id).split(",")[0].trim();
-      return getMemberName(firstId);
-    }
+    const idList = Array.isArray(rawIds)
+      ? rawIds.map(Number)
+      : String(rawIds)
+          .split(",")
+          .map((id) => Number(id.trim()))
+          .filter(Boolean);
 
-    return "someone";
+    return idList
+      .map((id) => getMemberName(id))
+      .filter((name) => name !== "Unknown")
+      .join(", ");
   };
 
   return (
@@ -403,7 +410,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
                   }`}
                 >
                   {isPaidBack
-                    ? `${payer} paid back ${getPaidForName(bill)}`
+                    ? `${payer} paid back ${getPaidForNames(bill) || "someone"}`
                     : bill.what || "Untitled"}
                 </p>
 
