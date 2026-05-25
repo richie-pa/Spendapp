@@ -176,24 +176,22 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
   };
 
   const getPaidForName = (bill: Bill) => {
-  const raw = bill as any;
+    const raw = bill as any;
 
-  const id =
-    raw.payed_for ||
-    raw.payedFor ||
-    raw.payed_for_ids ||
-    raw.payedForIds ||
-    raw.ower_id ||
-    raw.owerId;
+    const id =
+      raw.payed_for ||
+      raw.payedFor ||
+      raw.ower_id ||
+      raw.owerId ||
+      raw.ower;
 
-  if (!id) {
-    return "Unknown";
-  }
+    if (id) {
+      const firstId = String(id).split(",")[0].trim();
+      return getMemberName(firstId);
+    }
 
-  const firstId = String(id).split(",")[0].trim();
-
-  return getMemberName(firstId);
-};
+    return "someone";
+  };
 
   return (
     <div className="min-h-dvh space-y-5 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
