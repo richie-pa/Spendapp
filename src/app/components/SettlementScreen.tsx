@@ -226,29 +226,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         </Button>
       </div>
 
-      <Card className="overflow-hidden rounded-3xl border-0 shadow-lg">
-        <CardContent className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white">
-          <div className="flex items-center gap-3">
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
-              <Scale className="h-6 w-6 text-white" />
-            </div>
 
-            <div className="min-w-0 flex-1">
-              <p className="text-sm text-white/80">Still unsettled</p>
-
-              <p className="text-4xl font-bold tracking-tight">
-                {currencySymbol}
-                {unsettledAmount.toFixed(2)}
-              </p>
-
-              <p className="mt-2 text-xs text-white/80">
-                From {currencySymbol}
-                {totalExpenses.toFixed(2)} total expenses
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {memberSummaries.length > 0 && (
         <div className="grid grid-cols-2 gap-3">
