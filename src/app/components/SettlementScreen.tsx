@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
-import type {
-  CospendLink,
-  Settlement,
-  Project,
-  Bill,
-} from "../types/cospend";
+import type { CospendLink, Settlement, Project, Bill } from "../types/cospend";
 
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Skeleton } from "./ui/skeleton";
@@ -13,9 +8,9 @@ import {
   AlertCircle,
   ArrowRight,
   RefreshCw,
+  Scale,
   Wallet,
   TrendingUp,
-  Scale,
 } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
 import { Button } from "./ui/button";
@@ -61,8 +56,8 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   if (loading) {
     return (
       <div className="space-y-4 px-4 pt-5 pb-[calc(9rem+env(safe-area-inset-bottom))]">
-        <Skeleton className="h-10 w-56 rounded-2xl bg-white/80" />
-        <Skeleton className="h-64 rounded-3xl bg-white/80" />
+        <Skeleton className="h-12 rounded-2xl bg-white/80" />
+        <Skeleton className="h-48 rounded-3xl bg-white/80" />
         <Skeleton className="h-64 rounded-3xl bg-white/80" />
       </div>
     );
@@ -186,14 +181,24 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
     };
   });
 
-  const totalPaid = memberSummaries.reduce((sum, item) => sum + item.paid, 0);
-  const totalSpent = memberSummaries.reduce((sum, item) => sum + item.spent, 0);
+  const totalExpenses = expenseBills.reduce(
+    (sum, bill) => sum + Number(bill.amount || 0),
+    0
+  );
 
-  const maxGraphValue =
-    Math.max(
-      ...memberSummaries.map((item) => Math.max(item.paid, item.spent)),
-      1
-    );
+  const unsettledAmount =
+    settlement?.transactions?.reduce(
+      (sum, tx: any) => sum + Number(tx.amount || 0),
+      0
+    ) || 0;
+
+  const mostAdvanced = [...memberSummaries].sort(
+    (a, b) => b.balance - a.balance
+  )[0];
+
+  const mostOwing = [...memberSummaries].sort(
+    (a, b) => a.balance - b.balance
+  )[0];
 
   return (
     <div className="space-y-6 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
@@ -206,7 +211,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
           </h1>
 
           <p className="text-sm text-slate-500">
-            Who paid, who spent, and who owes who
+            Simple numbers for who paid, spent, and still owes
           </p>
         </div>
 
@@ -221,48 +226,77 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-blue-600">
-              <Wallet className="h-4 w-4" />
-              <p className="text-sm font-medium">Total paid</p>
+      <Card className="overflow-hidden rounded-3xl border-0 shadow-lg">
+        <CardContent className="bg-gradient-to-br from-blue-600 to-indigo-700 p-6 text-white">
+          <div className="flex items-center gap-3">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/20">
+              <Scale className="h-6 w-6 text-white" />
             </div>
 
-            <p className="mt-2 text-2xl font-bold text-slate-900">
-              {currencySymbol}
-              {totalPaid.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm text-white/80">Still unsettled</p>
 
-        <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-2 text-purple-600">
-              <TrendingUp className="h-4 w-4" />
-              <p className="text-sm font-medium">Total spent</p>
+              <p className="text-4xl font-bold tracking-tight">
+                {currencySymbol}
+                {unsettledAmount.toFixed(2)}
+              </p>
+
+              <p className="mt-2 text-xs text-white/80">
+                From {currencySymbol}
+                {totalExpenses.toFixed(2)} total expenses
+              </p>
             </div>
+          </div>
+        </CardContent>
+      </Card>
 
-            <p className="mt-2 text-2xl font-bold text-slate-900">
-              {currencySymbol}
-              {totalSpent.toFixed(2)}
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+      {memberSummaries.length > 0 && (
+        <div className="grid grid-cols-2 gap-3">
+          <Card className="rounded-3xl border-0 bg-emerald-50 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-emerald-700">
+                <Wallet className="h-4 w-4" />
+                <p className="text-sm font-medium">Most advanced</p>
+              </div>
+
+              <p className="mt-2 truncate text-lg font-bold text-emerald-950">
+                {mostAdvanced?.member.name || "—"}
+              </p>
+
+              <p className="text-sm font-semibold text-emerald-700">
+                +{currencySymbol}
+                {Math.max(mostAdvanced?.balance || 0, 0).toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-3xl border-0 bg-red-50 shadow-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2 text-red-600">
+                <TrendingUp className="h-4 w-4" />
+                <p className="text-sm font-medium">Most owing</p>
+              </div>
+
+              <p className="mt-2 truncate text-lg font-bold text-red-950">
+                {mostOwing?.member.name || "—"}
+              </p>
+
+              <p className="text-sm font-semibold text-red-600">
+                {currencySymbol}
+                {Math.min(mostOwing?.balance || 0, 0).toFixed(2)}
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-xl">
-            <Scale className="h-5 w-5 text-blue-600" />
-            Paid vs spent
-          </CardTitle>
+          <CardTitle className="text-xl">Per person</CardTitle>
         </CardHeader>
 
-        <CardContent className="space-y-5">
+        <CardContent className="space-y-3">
           {memberSummaries.map(({ member, paid, spent, balance }) => {
-            const paidWidth = Math.max((paid / maxGraphValue) * 100, 4);
-            const spentWidth = Math.max((spent / maxGraphValue) * 100, 4);
             const isPositive = balance >= 0;
 
             return (
@@ -271,9 +305,9 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                 className="rounded-3xl border border-slate-100 bg-slate-50 p-4"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-3">
+                  <div className="flex min-w-0 items-center gap-3">
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-full font-bold text-white"
+                      className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full font-bold text-white"
                       style={{
                         backgroundColor: `rgb(${member.color.r}, ${member.color.g}, ${member.color.b})`,
                       }}
@@ -281,57 +315,33 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                       {member.name.charAt(0).toUpperCase()}
                     </div>
 
-                    <div>
-                      <p className="font-semibold text-slate-900">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-slate-900">
                         {member.name}
                       </p>
 
-                      <p
-                        className={`text-sm font-medium ${
-                          isPositive ? "text-emerald-600" : "text-red-500"
-                        }`}
-                      >
-                        Balance: {isPositive ? "+" : ""}
-                        {currencySymbol}
-                        {balance.toFixed(2)}
+                      <p className="text-xs text-slate-500">
+                        Paid {currencySymbol}
+                        {paid.toFixed(2)} · Spent {currencySymbol}
+                        {spent.toFixed(2)}
                       </p>
                     </div>
                   </div>
-                </div>
 
-                <div className="mt-4 space-y-3">
-                  <div>
-                    <div className="mb-1 flex justify-between text-xs text-slate-500">
-                      <span>Paid</span>
-                      <span>
-                        {currencySymbol}
-                        {paid.toFixed(2)}
-                      </span>
-                    </div>
+                  <div className="text-right">
+                    <p
+                      className={`text-lg font-bold ${
+                        isPositive ? "text-emerald-600" : "text-red-500"
+                      }`}
+                    >
+                      {isPositive ? "+" : ""}
+                      {currencySymbol}
+                      {balance.toFixed(2)}
+                    </p>
 
-                    <div className="h-3 overflow-hidden rounded-full bg-white">
-                      <div
-                        className="h-full rounded-full bg-blue-500"
-                        style={{ width: `${paidWidth}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-1 flex justify-between text-xs text-slate-500">
-                      <span>Spent</span>
-                      <span>
-                        {currencySymbol}
-                        {spent.toFixed(2)}
-                      </span>
-                    </div>
-
-                    <div className="h-3 overflow-hidden rounded-full bg-white">
-                      <div
-                        className="h-full rounded-full bg-purple-500"
-                        style={{ width: `${spentWidth}%` }}
-                      />
-                    </div>
+                    <p className="text-xs text-slate-500">
+                      {isPositive ? "gets back" : "owes"}
+                    </p>
                   </div>
                 </div>
 
