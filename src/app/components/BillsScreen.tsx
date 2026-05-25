@@ -388,26 +388,14 @@ const getPaidForNames = (bill: Bill) => {
                       </div>
                     </div>
 
-                    {bill.deleted ? (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 rounded-2xl"
-                        onClick={() => handleRestore(bill)}
-                        disabled={restoring}
-                      >
-                        <RotateCcw className="h-4 w-4 text-green-600" />
-                      </Button>
-                    ) : (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 rounded-2xl"
-                        onClick={() => setBillToDelete(bill)}
-                      >
-                        <Trash2 className="h-4 w-4 text-red-500" />
-                      </Button>
-                    )}
+                   <Button
+                    variant="ghost"
+                    size="icon"
+                    className="shrink-0 rounded-2xl"
+                    onClick={() => setBillToDelete(bill)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
                   </div>
                 </CardContent>
               </Card>
