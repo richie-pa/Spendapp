@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { notifySplitCloud } from "../lib/notifications";
+import { storage } from "../lib/storage";
 import { CospendApi } from "../lib/cospend-api";
 import type { CospendLink, Member, Project } from "../types/cospend";
 import { Button } from "./ui/button";
@@ -145,6 +146,20 @@ const handleSubmit = async (e: React.FormEvent) => {
       repeatFreq: 1,
       repeatUntil: null,
       timestamp: Math.floor(Date.now() / 1000),
+    });
+
+    
+    const currentMemberId = storage.getCurrentMember();
+
+    const actorMember =
+      activeMembers.find((m) => m.id === currentMemberId) ||
+      activeMembers.find((m) => m.id === payerId);
+
+    await notifySplitCloud({
+      projectId: link.token,
+      actor: actorMember?.name || "someone",
+      title: "New movement in SplitCloud",
+      body: `${actorMember?.name || "Someone"} added ${what || "a movement"} for ${currencySymbol}${parseFloat(amount).toFixed(2)}`,
     });
 
     const payerName =
