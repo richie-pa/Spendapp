@@ -214,13 +214,15 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       <form onSubmit={handleSubmit} className="space-y-5">
 <Card className="rounded-[2rem] border border-slate-200/70 bg-white shadow-xl shadow-slate-200/60 overflow-hidden">
   <CardHeader className="space-y-1 border-b border-slate-100 px-5 pb-4 pt-5">
-    <CardTitle className="text-xl font-bold tracking-tight text-slate-900">
-      Bill details
-    </CardTitle>
+<CardTitle>
+  {markAsPaidBack ? "Pay Back" : "Bill Details"}
+</CardTitle>
 
-    <CardDescription className="text-sm text-slate-500">
-      Add the amount, description and optional tags.
-    </CardDescription>
+  <CardDescription>
+    {markAsPaidBack
+      ? "Record a reimbursement or money returned"
+      : "Add expense information"}
+  </CardDescription>
   </CardHeader>
 
   <CardContent className="space-y-5 p-5">
