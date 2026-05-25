@@ -113,19 +113,16 @@ export class CospendApi {
     });
   }
 
-  async restoreBill(billId: number): Promise<void> {
-  await CapacitorHttp.post({
-    url: `${this.getBaseUrl()}/bills/${billId}`,
+async restoreBill(billId: number): Promise<void> {
+  await CapacitorHttp.put({
+    url: `${this.getBaseUrl()}/trash-bin/${billId}`,
     headers: {
       ...this.getHeaders(),
       "Content-Type": "application/json",
     },
-    data: {
-      deleted: 0,
-    },
+    data: {},
   });
 }
-
 
   static parseCospendLink(link: string): CospendLink {
     const cleaned = link.trim().replace(/\s+/g, "");
