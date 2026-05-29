@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { notifySplitCloud } from "../lib/notifications";
+import { createTranslator } from "../lib/i18n";
 import { storage } from "../lib/storage";
 import { CospendApi } from "../lib/cospend-api";
 import type { CospendLink, Member, Project } from "../types/cospend";
@@ -20,6 +21,7 @@ interface AddBillScreenProps {
 }
 
 export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
+  const t = createTranslator(storage.getLanguage());
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -74,7 +76,7 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
       const activeMembers = data.members?.filter((m) => m.activated) || [];
       setSelectedMembers(new Set(activeMembers.map((m) => m.id)));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load project");
+      setError(err instanceof Error ? err.message : t("failedToLoadProject"));
     } finally {
       setLoading(false);
     }
@@ -120,16 +122,16 @@ const handleSubmit = async (e: React.FormEvent) => {
   e.preventDefault();
 
   if (!payer) {
-    toast.error(
-      formMode === "payback"
-        ? "Please select who paid back"
-        : "Please select who paid"
-    );
+      toast.error(
+        formMode === "payback"
+          ? t("pleaseSelectWhoPaidBack")
+          : t("pleaseSelectWhoPaid")
+      );
     return;
   }
 
   if (!amount || parseFloat(amount) <= 0) {
-    toast.error("Please enter a valid amount");
+    toast.error(t("pleaseEnterValidAmount"));
     return;
   }
 
@@ -144,26 +146,26 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     if (formMode === "payback") {
       if (!receiver) {
-        toast.error("Please select who received the payback");
+        toast.error(t("pleaseSelectWhoReceivedPayback"));
         setSubmitting(false);
         return;
       }
 
       if (receiver === payer) {
-        toast.error("Payer and receiver cannot be the same person");
+        toast.error(t("payerAndReceiverSame"));
         setSubmitting(false);
         return;
       }
 
       if (!paidBackCategory?.id) {
-        toast.error("Paid Back category was not found");
+        toast.error(t("paidBackCategoryNotFound"));
         setSubmitting(false);
         return;
       }
 
       await api.createBill({
         amount: numericAmount,
-        what: what || "Paid back",
+        what: what || t("paidBack"),
         comment,
         payer: payerId,
         payedFor: receiver,
@@ -182,11 +184,11 @@ const handleSubmit = async (e: React.FormEvent) => {
       await sendNotification({
         actor: payerName,
         recipients: [receiverName],
-        title: "💸 Payback added",
-        body: `${payerName} paid back ${receiverName} ${currencySymbol}${numericAmount.toFixed(2)}`,
+        title: `💸 ${t("paybackAdded")}`,
+        body: `${payerName} ${t("paidBack")} ${receiverName} ${currencySymbol}${numericAmount.toFixed(2)}`,
       });
 
-      toast.success("Payback added successfully!");
+      toast.success(t("paybackAddedSuccessfully"));
 
       setAmount("");
       setWhat("");
@@ -204,7 +206,7 @@ const handleSubmit = async (e: React.FormEvent) => {
     const participants = selectedMemberList;
 
     if (participants.length === 0) {
-      toast.error("Please select at least one participant");
+      toast.error(t("pleaseSelectAtLeastOneParticipant"));
       setSubmitting(false);
       return;
     }
@@ -216,7 +218,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       );
 
       if (Math.abs(totalCustom - numericAmount) > 0.01) {
-        toast.error("Custom split must equal total amount");
+        toast.error(t("customSplitMustEqualTotal"));
         setSubmitting(false);
         return;
       }
@@ -267,11 +269,11 @@ const handleSubmit = async (e: React.FormEvent) => {
       recipients: participants
         .filter((member) => member.id !== payerId)
         .map((member) => member.name),
-      title: customSplit ? "🧾 New custom split added" : "🧾 New bill added",
+      title: customSplit ? `🧾 ${t("newCustomSplitAdded")}` : `🧾 ${t("newBillAdded")}`,
       body: `${payerName} added ${what || "a bill"} for ${currencySymbol}${numericAmount.toFixed(2)}`,
     });
 
-    toast.success("Bill added successfully!");
+    toast.success(t("billAddedSuccessfully"));
 
     setAmount("");
     setWhat("");
@@ -291,8 +293,8 @@ const handleSubmit = async (e: React.FormEvent) => {
       err instanceof Error
         ? err.message
         : formMode === "payback"
-          ? "Failed to create payback"
-          : "Failed to create bill"
+          ? t("createPaybackFailed")
+            : t("createBillFailed")
     );
   } finally {
     setSubmitting(false);
@@ -333,17 +335,17 @@ const handleSubmit = async (e: React.FormEvent) => {
       <div className="space-y-1">
 
         <p className="text-sm font-semibold text-blue-600">
-  {formMode === "payback" ? "Money returned" : "New expense"}
+  {formMode === "payback" ? t("moneyReturned") : t("newExpense")}
 </p>
 
 <h1 className="text-3xl font-bold tracking-tight">
-  {formMode === "payback" ? "Pay Back" : "Add Bill"}
+  {formMode === "payback" ? t("payBack") : t("addBill")}
 </h1>
 
 <p className="text-sm text-slate-500">
   {formMode === "payback"
-    ? "Record money paid back between two people."
-    : "Record a new expense with a clean mobile flow."}
+    ? t("recordPaidBackBetweenTwoPeople")
+    : t("recordNewExpense")}
 </p>
 
          </div>
@@ -361,7 +363,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       setMarkAsPaidBack(false);
     }}
   >
-    Add Bill
+    {t("addBill")}
   </Button>
 
   <Button
@@ -376,7 +378,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       setMemberAmounts({});
     }}
   >
-    Pay Back
+    {t("payBack")}
   </Button>
 </div>
 
@@ -385,20 +387,20 @@ const handleSubmit = async (e: React.FormEvent) => {
 <Card className="rounded-[2rem] border border-slate-200/70 bg-white shadow-xl shadow-slate-200/60 overflow-hidden">
   <CardHeader className="space-y-1 border-b border-slate-100 px-5 pb-4 pt-5">
 <CardTitle>
-  {formMode === "payback" ? "Pay Back Details" : "Bill Details"}
+  {formMode === "payback" ? t("payBackDetails") : t("billDetails")}
 </CardTitle>
 
   <CardDescription>
       {formMode === "payback"
-        ? "Choose who paid back whom and how much."
-        : "Add expense information"}
+        ? t("chooseWhoPaidBackWhom")
+        : t("addExpenseInformation")}
   </CardDescription>
   </CardHeader>
 
   <CardContent className="space-y-5 p-5">
     <div className="space-y-2">
       <Label htmlFor="amount">
-        Amount ({currencySymbol})
+        {t("amount")} ({currencySymbol})
       </Label>
 
       <Input
@@ -415,7 +417,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     <div className="space-y-2">
       <Label htmlFor="what">
-        Description
+        {t("description")}
       </Label>
 
       <Input
@@ -431,9 +433,9 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     <div className="space-y-2">
       <Label htmlFor="comment">
-        Comment{" "}
+        {t("comment")} {" "}
         <span className="text-muted-foreground">
-          (optional)
+          ({t("optional")})
         </span>
       </Label>
 
@@ -449,7 +451,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     <div className="space-y-2">
       <Label htmlFor="payer">
-        Who paid?
+        {t("whoPaid")}
       </Label>
 
       <Select
@@ -460,7 +462,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           id="payer"
           className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-inner"
         >
-          <SelectValue placeholder="Select payer" />
+          <SelectValue placeholder={t("selectPayer")} />
         </SelectTrigger>
 
         <SelectContent className="rounded-2xl border-slate-200">
@@ -479,14 +481,14 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     {formMode === "payback" && (
   <div className="space-y-2">
-    <Label htmlFor="receiver">Paid to</Label>
+    <Label htmlFor="receiver">{t("paidTo")}</Label>
 
     <Select value={receiver} onValueChange={setReceiver}>
       <SelectTrigger
         id="receiver"
         className="h-14 rounded-2xl border-slate-200 bg-slate-50 px-4 shadow-inner"
       >
-        <SelectValue placeholder="Select receiver" />
+        <SelectValue placeholder={t("selectReceiver")} />
       </SelectTrigger>
 
       <SelectContent className="rounded-2xl border-slate-200">
@@ -508,7 +510,7 @@ const handleSubmit = async (e: React.FormEvent) => {
           className="w-full h-12 rounded-2xl justify-between bg-blue-50 text-blue-700 hover:bg-blue-100"
           onClick={() => setShowAdvanced(!showAdvanced)}
         >
-          Advanced options
+          {t("advancedOptions")}
 
           <span className="text-lg">
             {showAdvanced ? "−" : "+"}
@@ -601,8 +603,8 @@ const handleSubmit = async (e: React.FormEvent) => {
 
       {formMode === "bill" && (
         <Card className="rounded-3xl border-0 bg-white shadow-sm">          <CardHeader className="space-y-1 pb-3">
-            <CardTitle className="text-xl">Participants</CardTitle>
-            <p className="text-sm text-muted-foreground">Choose equal or custom split, then tap the people involved.</p>
+            <CardTitle className="text-xl">{t("participants")}</CardTitle>
+            <p className="text-sm text-muted-foreground">{t("chooseSplitParticipants")}</p>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2 rounded-[1.5rem] bg-slate-100 p-1">
@@ -618,7 +620,7 @@ const handleSubmit = async (e: React.FormEvent) => {
               }}
             >
               <Equal className="mr-2 h-4 w-4" />
-              Equal
+              {t("equal")}
             </Button>
 
               <Button
@@ -631,21 +633,21 @@ const handleSubmit = async (e: React.FormEvent) => {
                 }}
               >
                 <SlidersHorizontal className="mr-2 h-4 w-4" />
-                Custom
+                {t("custom")}
               </Button>
             </div>
 
             {customSplit ? (
-  <div className={`rounded-3xl border p-4 shadow-sm transition-all duration-200 ${splitStateTone}`}>
+      <div className={`rounded-3xl border p-4 shadow-sm transition-all duration-200 ${splitStateTone}`}>
     <div className="flex items-center justify-between text-sm">
-      <span className="font-medium">Assigned</span>
+      <span className="font-medium">{t("assigned")}</span>
       <strong>
         {currencySymbol}{customTotal.toFixed(2)}
       </strong>
     </div>
 
     <div className="mt-2 flex items-center justify-between text-sm">
-      <span className="font-medium">Remaining</span>
+      <span className="font-medium">{t("remaining")}</span>
       <strong>
         {currencySymbol}{remaining.toFixed(2)}
       </strong>
@@ -654,12 +656,12 @@ const handleSubmit = async (e: React.FormEvent) => {
 ) : (
   <div className="rounded-3xl border border-slate-200 bg-slate-50 p-4 text-slate-700">
     <p className="text-sm font-medium">
-      Equal split preview
+      {t("equalSplitPreview")}
     </p>
     <p className="mt-1 text-xl font-bold">
       {currencySymbol}{equalShare.toFixed(2)}
       <span className="ml-1 text-sm font-normal text-slate-500">
-        per selected person
+        {t("perSelectedPerson")}
       </span>
     </p>
   </div>
@@ -700,9 +702,9 @@ const handleSubmit = async (e: React.FormEvent) => {
                           </div>
                           {customSplit ? (
                             isSelected ? (
-                              <p className="text-xs text-slate-500">Enter the custom amount for this person.</p>
+                              <p className="text-xs text-slate-500">{t("enterCustomAmountForPerson")}</p>
                             ) : (
-                              <p className="text-xs text-slate-400">Tap to include in the split.</p>
+                              <p className="text-xs text-slate-400">{t("tapToIncludeInSplit")}</p>
                             )
                           ) : (
                             isSelected && (

@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
+import { createTranslator } from "../lib/i18n";
+import { storage } from "../lib/storage";
 import type { CospendLink, Project, Settlement, Bill } from "../types/cospend";
 
 import { Card, CardContent } from "./ui/card";
@@ -23,6 +25,7 @@ interface DashboardScreenProps {
 type Period = "day" | "week" | "month";
 
 export function DashboardScreen({ link }: DashboardScreenProps) {
+  const t = createTranslator(storage.getLanguage());
   const [project, setProject] = useState<Project | null>(null);
   const [settlement, setSettlement] = useState<Settlement | null>(null);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -47,7 +50,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
       setSettlement(settlementData);
       setBills(billsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load dashboard");
+      setError(err instanceof Error ? err.message : t("failedToLoadDashboard"));
     } finally {
       setLoading(false);
     }
@@ -212,13 +215,11 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
     <div className="min-h-dvh space-y-5 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <div className="flex items-start justify-between gap-3">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-blue-600">Project</p>
+          <p className="text-sm font-semibold text-blue-600">{t("project")}</p>
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            {project?.name || "Dashboard"}
+            {project?.name || t("dashboard")}
           </h1>
-          <p className="text-sm text-slate-500">
-            Expenses overview, excluding paid backs
-          </p>
+          <p className="text-sm text-slate-500">{t("expensesOverview")}</p>
         </div>
 
         <Button
@@ -239,7 +240,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
             </div>
 
             <div className="min-w-0 flex-1">
-              <p className="text-sm text-white/80">Total spent</p>
+              <p className="text-sm text-white/80">{t("totalSpent")}</p>
 
               <div className="text-4xl font-bold tracking-tight text-white">
                 {currencySymbol}
@@ -249,12 +250,12 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
               <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-white/80">
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
                   <Receipt className="h-3.5 w-3.5" />
-                  {expenseBills.length} expenses
+                  {expenseBills.length} {t("expenses")}
                 </span>
 
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-1">
                   <Users className="h-3.5 w-3.5" />
-                  {activeMembers.length} people
+                  {activeMembers.length} {t("people")}
                 </span>
               </div>
             </div>
@@ -280,21 +281,17 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
         <CardContent className="space-y-4 p-5">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold tracking-tight text-slate-900">
-              {period === "day"
-                ? "Today"
-                : period === "week"
-                  ? "This week"
-                  : "This month"}
+              {period === "day" ? t("today") : period === "week" ? t("thisWeek") : t("thisMonth")}
             </h2>
 
             <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-medium text-blue-700">
-              Analytics
+              {t("analytics")}
             </span>
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Spent</p>
+              <p className="text-sm text-slate-500">{t("spent")}</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
                 {currencySymbol}
                 {periodSpent.toFixed(2)}
@@ -302,14 +299,14 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
             </div>
 
             <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Movements</p>
+              <p className="text-sm text-slate-500">{t("movementsCount")}</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
                 {periodBills.length}
               </p>
             </div>
 
             <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Average</p>
+              <p className="text-sm text-slate-500">{t("average")}</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
                 {currencySymbol}
                 {averageExpense.toFixed(2)}
@@ -317,7 +314,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
             </div>
 
             <div className="rounded-3xl bg-slate-50 p-4">
-              <p className="text-sm text-slate-500">Biggest</p>
+              <p className="text-sm text-slate-500">{t("biggest")}</p>
               <p className="mt-1 text-2xl font-bold text-slate-900">
                 {currencySymbol}
                 {Number(biggestBill?.amount || 0).toFixed(2)}
@@ -329,11 +326,11 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
             <div className="rounded-3xl bg-blue-50 p-4">
               <div className="flex items-center gap-2 text-blue-700">
                 <TrendingUp className="h-4 w-4" />
-                <p className="text-sm font-medium">Biggest movement</p>
+                <p className="text-sm font-medium">{t("biggestMovement")}</p>
               </div>
 
               <p className="mt-1 font-bold text-blue-950">
-                {biggestBill.what || "Untitled"}
+                {biggestBill.what || t("untitledMovement")}
               </p>
             </div>
           )}
@@ -342,7 +339,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
       <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
         <CardContent className="space-y-4 p-5">
-          <h2 className="text-xl font-bold text-slate-900">Balances</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t("balances")}</h2>
 
           {activeMembers.map((member) => {
             const balance = Number((balances as any)[member.id] || 0);
@@ -389,7 +386,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
       <CalendarDays className="h-5 w-5 text-blue-600" />
 
       <h2 className="text-xl font-bold text-slate-900">
-        Recent activity
+        {t("recentActivity")}
       </h2>
     </div>
 
@@ -418,8 +415,8 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
                   }`}
                 >
                   {isPaidBack
-                    ? `${payer} paid back ${getPaidForNames(bill) || "someone"}`
-                    : bill.what || "Untitled"}
+                    ? `${payer} ${t("paidBack").toLowerCase()} ${getPaidForNames(bill) || t("someone")}`
+                    : bill.what || t("untitledMovement")}
                 </p>
 
                 <p
@@ -427,7 +424,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
                     isPaidBack ? "text-emerald-700/70" : "text-slate-500"
                   }`}
                 >
-                  {isPaidBack ? "Paid Back" : `Paid by ${payer}`} ·{" "}
+                  {isPaidBack ? t("paidBack") : `${t("paidBy")} ${payer}`} ·{" "}
                   {new Date(bill.timestamp * 1000).toLocaleDateString()}
                 </p>
               </div>
@@ -444,9 +441,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
           );
         })
       ) : (
-        <p className="text-sm text-slate-500">
-          No activity yet.
-        </p>
+        <p className="text-sm text-slate-500">{t("noActivityYet")}</p>
       )}
     </div>
   </CardContent>
@@ -454,7 +449,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
 
       <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
         <CardContent className="space-y-4 p-5">
-          <h2 className="text-xl font-bold text-slate-900">Who owes who</h2>
+          <h2 className="text-xl font-bold text-slate-900">{t("whoOwesWho")}</h2>
 
           {settlement?.transactions?.length ? (
             settlement.transactions.map((tx, index) => (
@@ -473,7 +468,7 @@ export function DashboardScreen({ link }: DashboardScreenProps) {
               </div>
             ))
           ) : (
-            <p className="text-slate-500">Everything is settled 🎉</p>
+            <p className="text-slate-500">{t("everythingSettled")}</p>
           )}
         </CardContent>
       </Card>

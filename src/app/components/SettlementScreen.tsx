@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
+import { createTranslator } from "../lib/i18n";
+import { storage } from "../lib/storage";
 import type { CospendLink, Settlement, Project, Bill } from "../types/cospend";
 
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
@@ -21,6 +23,7 @@ interface SettlementScreenProps {
 }
 
 export function SettlementScreen({ link }: SettlementScreenProps) {
+  const t = createTranslator(storage.getLanguage());
   const [settlement, setSettlement] = useState<Settlement | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [bills, setBills] = useState<Bill[]>([]);
@@ -48,7 +51,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
       setProject(projectData);
       setBills(billsData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load settlement");
+      setError(err instanceof Error ? err.message : t("failedToLoadSettlement"));
     } finally {
       setLoading(false);
     }
@@ -237,15 +240,13 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
     <div className="space-y-6 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <div className="flex items-start justify-between gap-2">
         <div className="space-y-1">
-          <p className="text-sm font-semibold text-blue-600">Overview</p>
+          <p className="text-sm font-semibold text-blue-600">{t("overview")}</p>
 
           <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-            Settlement
+            {t("settlement")}
           </h1>
 
-          <p className="text-sm text-slate-500">
-            Paid, received, spent and current balance
-          </p>
+          <p className="text-sm text-slate-500">{t("paidReceivedSpentBalance")}</p>
         </div>
 
         <Button
@@ -265,7 +266,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-emerald-700">
                 <Wallet className="h-4 w-4" />
-                <p className="text-sm font-medium">Gets back most</p>
+                <p className="text-sm font-medium">{t("getsBackMost")}</p>
               </div>
 
               <p className="mt-2 truncate text-lg font-bold text-emerald-950">
@@ -282,7 +283,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
             <CardContent className="p-4">
               <div className="flex items-center gap-2 text-red-600">
                 <Scale className="h-4 w-4" />
-                <p className="text-sm font-medium">Owes most</p>
+                <p className="text-sm font-medium">{t("owesMost")}</p>
               </div>
 
               <p className="mt-2 truncate text-lg font-bold text-red-950">
@@ -299,7 +300,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
       <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Per person</CardTitle>
+          <CardTitle className="text-xl">{t("perPerson")}</CardTitle>
         </CardHeader>
 
         <CardContent className="space-y-3">
@@ -329,8 +330,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                         </p>
 
                         <p className="text-xs text-slate-500">
-                          Paid {money(paid)} · Received {money(received)} · Spent{" "}
-                          {money(spent)}
+                          {t("paid")} {money(paid)} · {t("received")} {money(received)} · {t("spent")} {money(spent)}
                         </p>
                       </div>
                     </div>
@@ -346,7 +346,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                       </p>
 
                       <p className="text-xs text-slate-500">
-                        {isPositive ? "gets back" : "owes"}
+                        {isPositive ? t("getsBackMost") : t("owesMost")}
                       </p>
                     </div>
                   </div>
@@ -357,7 +357,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                         <Wallet className="h-3.5 w-3.5" />
                       </div>
 
-                      <p className="text-[11px] text-slate-500">Paid</p>
+                      <p className="text-[11px] text-slate-500">{t("paid")}</p>
 
                       <p className="font-semibold text-slate-900">
                         {money(paid)}
@@ -369,7 +369,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                         <HandCoins className="h-3.5 w-3.5" />
                       </div>
 
-                      <p className="text-[11px] text-slate-500">Received</p>
+                      <p className="text-[11px] text-slate-500">{t("received")}</p>
 
                       <p className="font-semibold text-emerald-700">
                         {money(received)}
@@ -381,7 +381,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                         <ShoppingBag className="h-3.5 w-3.5" />
                       </div>
 
-                      <p className="text-[11px] text-slate-500">Spent</p>
+                      <p className="text-[11px] text-slate-500">{t("spent")}</p>
 
                       <p className="font-semibold text-slate-900">
                         {money(spent)}
@@ -391,7 +391,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
                   {sentBack > 0 && (
                     <div className="mt-3 rounded-2xl bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
-                      Sent back {money(sentBack)} already
+                      {t("sentBack")} {money(sentBack)} {t("already")}
                     </div>
                   )}
                 </div>
@@ -403,7 +403,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
       <Card className="rounded-3xl border-0 bg-white/90 shadow-sm">
         <CardHeader>
-          <CardTitle className="text-xl">Who owes who</CardTitle>
+          <CardTitle className="text-xl">{t("whoOwesWho")}</CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -435,11 +435,11 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
           ) : (
             <div className="rounded-3xl bg-emerald-50 p-6 text-center">
               <p className="text-lg font-bold text-emerald-700">
-                Everything is settled 🎉
+                {t("everythingSettled")}
               </p>
 
               <p className="mt-1 text-sm text-emerald-700/70">
-                Nobody owes anything right now.
+                {t("nobodyOwesAnything")}
               </p>
             </div>
           )}

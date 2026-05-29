@@ -2,6 +2,9 @@ import type { CospendLink } from "../types/cospend";
 
 const CURRENT_LINK_KEY = "cospend_link";
 const PROJECTS_KEY = "cospend_projects";
+const LANGUAGE_KEY = "splitcloud_language";
+
+export type AppLanguage = "en" | "de";
 
 export interface SavedProject {
   id: string;
@@ -10,6 +13,20 @@ export interface SavedProject {
 }
 
 export const storage = {
+  getLanguage(): AppLanguage {
+    const raw = localStorage.getItem(LANGUAGE_KEY);
+
+    if (raw === "de") {
+      return "de";
+    }
+
+    return "en";
+  },
+
+  setLanguage(language: AppLanguage) {
+    localStorage.setItem(LANGUAGE_KEY, language);
+  },
+
   getLink(): CospendLink | null {
     const raw = localStorage.getItem(CURRENT_LINK_KEY);
     return raw ? JSON.parse(raw) : null;

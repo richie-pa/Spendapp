@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
+import { createTranslator } from "../lib/i18n";
 import { storage } from "../lib/storage";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
@@ -7,20 +8,17 @@ import { Label } from "./ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
 import { AlertCircle, Wallet } from "lucide-react";
 import { Alert, AlertDescription } from "./ui/alert";
+import { LanguageSelector } from "./LanguageSelector";
 
 interface SetupScreenProps {
   onSetupComplete: () => void;
 }
 
 export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
+  const t = createTranslator(storage.getLanguage());
   const [link, setLink] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  const handleAddProject = () => {
-    storage.clearLink();
-    onLogout();
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,13 +35,13 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
 
     storage.saveProject({
       id: parsedLink.token,
-      name: project.name || "Unnamed project",
+      name: project.name || t("noActiveProject"),
       link: parsedLink,
     });
 
     onSetupComplete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to connect");
+      setError(err instanceof Error ? err.message : t("failedToConnect"));
     } finally {
       setLoading(false);
     }
@@ -53,43 +51,46 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
     <div className="min-h-screen flex items-center justify-center p-4 bg-gradient-to-b from-background to-muted">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          <div className="mb-4 flex justify-end">
+            <LanguageSelector onLanguageChange={() => window.location.reload()} />
+          </div>
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
             <Wallet className="h-8 w-8 text-primary" />
           </div>
-          <CardTitle className="text-2xl">Splitcloud Manager</CardTitle>
+          <CardTitle className="text-2xl">{t("setupTitle")}</CardTitle>
           <CardDescription>
-            Enter your Splitcloud project link to get started
+            {t("setupDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="link">Splitcloud Link</Label>
+              <Label htmlFor="link">{t("splitcloudLink")}</Label>
               <Input
                 id="link"
                 type="text"
-                placeholder="cospend://host/token/password"
+                placeholder={t("splitcloudLinkPlaceholder")}
                 value={link}
                 onChange={(e) => setLink(e.target.value)}
                 required
               />
               <p className="text-sm text-muted-foreground">
-                Format: cospend://host/token/password
+                {t("linkFormat")}
               </p>
             </div>
 
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription className="text-sm">
-                <strong>How to get your link:</strong>
+                <strong>{t("howToGetLink")}</strong>
                 <br />
-                1. Open your Cospend project in Nextcloud
+                1. {t("setupStep1")}
                 <br />
-                2. Go to project settings
+                2. {t("setupStep2")}
                 <br />
-                3. Enable public sharing
+                3. {t("setupStep3")}
                 <br />
-                4. Copy the public link
+                4. {t("setupStep4")}
               </AlertDescription>
             </Alert>
 
@@ -101,7 +102,7 @@ export function SetupScreen({ onSetupComplete }: SetupScreenProps) {
             )}
 
             <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? "Connecting..." : "Connect"}
+              {loading ? t("connecting") : t("connect")}
             </Button>
           </form>
         </CardContent>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
+import { createTranslator } from "../lib/i18n";
 import { storage } from "../lib/storage";
 import type { CospendLink, Member } from "../types/cospend";
 
@@ -15,6 +16,7 @@ interface MembersScreenProps {
 }
 
 export function MembersScreen({ link }: MembersScreenProps) {
+  const t = createTranslator(storage.getLanguage());
   const [members, setMembers] = useState<Member[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,7 +38,7 @@ export function MembersScreen({ link }: MembersScreenProps) {
 
       setMembers(project.members || []);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load members");
+      setError(err instanceof Error ? err.message : t("failedToLoadMembers"));
     } finally {
       setLoading(false);
     }
@@ -99,7 +101,7 @@ export function MembersScreen({ link }: MembersScreenProps) {
 
                 {isCurrent && (
                   <span className="rounded-full bg-blue-600 px-2 py-0.5 text-xs font-semibold text-white">
-                    Me
+                    {t("me")}
                   </span>
                 )}
               </div>
@@ -107,7 +109,7 @@ export function MembersScreen({ link }: MembersScreenProps) {
               <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-slate-500">
                 <span>ID: {member.id}</span>
                 <span>•</span>
-                <span>Weight: {member.weight}</span>
+                <span>{t("weight")}: {member.weight}</span>
               </div>
             </div>
 
@@ -122,7 +124,7 @@ export function MembersScreen({ link }: MembersScreenProps) {
                   setCurrentMemberId(member.id);
                 }}
               >
-                {isCurrent ? "Selected" : "Select"}
+                {isCurrent ? t("selected") : t("select")}
               </Button>
             )}
           </div>
@@ -134,15 +136,13 @@ export function MembersScreen({ link }: MembersScreenProps) {
   return (
     <div className="min-h-dvh space-y-6 overflow-y-auto bg-slate-50 px-4 pt-5 pb-28">
       <div className="space-y-1">
-        <p className="text-sm font-semibold text-blue-600">People</p>
+        <p className="text-sm font-semibold text-blue-600">{t("peopleLabel")}</p>
 
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">
-          Members
+          {t("members")}
         </h1>
 
-        <p className="text-sm text-slate-500">
-          Select who you are on this device
-        </p>
+        <p className="text-sm text-slate-500">{t("selectWhoYouAre")}</p>
       </div>
 
       <Card className="rounded-3xl border-0 bg-white shadow-sm">
@@ -152,13 +152,13 @@ export function MembersScreen({ link }: MembersScreenProps) {
           </div>
 
           <div className="min-w-0 flex-1">
-            <p className="font-semibold text-slate-900">Current identity</p>
+            <p className="font-semibold text-slate-900">{t("currentIdentity")}</p>
 
             <p className="text-sm text-slate-500">
               {currentMemberId
                 ? activeMembers.find((m) => m.id === currentMemberId)?.name ||
-                  "Selected member"
-                : "No member selected yet"}
+                  t("selectedMember")
+                : t("noMemberSelectedYet")}
             </p>
           </div>
         </CardContent>
@@ -167,9 +167,7 @@ export function MembersScreen({ link }: MembersScreenProps) {
       {activeMembers.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-slate-900">
-              Active members
-            </h2>
+            <h2 className="text-xl font-bold text-slate-900">{t("activeMembers")}</h2>
 
             <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
               {activeMembers.length}
@@ -185,9 +183,7 @@ export function MembersScreen({ link }: MembersScreenProps) {
           <div className="flex items-center gap-2">
             <Users className="h-5 w-5 text-slate-400" />
 
-            <h2 className="text-xl font-bold text-slate-500">
-              Inactive members
-            </h2>
+            <h2 className="text-xl font-bold text-slate-500">{t("inactiveMembers")}</h2>
           </div>
 
           {inactiveMembers.map((member) => renderMemberCard(member, true))}
@@ -205,13 +201,13 @@ export function MembersScreen({ link }: MembersScreenProps) {
               members: activeMembers,
             });
 
-            toast.success("Notifications enabled");
+            toast.success(t("notificationsEnabled"));
           } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to enable notifications");
+            toast.error(err instanceof Error ? err.message : t("failedToEnableNotifications"));
           }
         }}
       >
-        Enable notifications
+        {t("enableNotifications")}
       </Button>
     </div>
 

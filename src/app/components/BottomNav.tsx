@@ -1,4 +1,6 @@
-import { Home, Users, Receipt, PlusCircle, TrendingUp, Settings } from "lucide-react";
+import { Home, Users, Receipt, PlusCircle, TrendingUp } from "lucide-react";
+import { createTranslator } from "../lib/i18n";
+import { storage } from "../lib/storage";
 import { cn } from "./ui/utils";
 
 export type Screen =
@@ -15,12 +17,14 @@ interface BottomNavProps {
 }
 
 export function BottomNav({ currentScreen, onScreenChange }: BottomNavProps) {
+  const t = createTranslator(storage.getLanguage());
+
   const navItems: Array<{ screen: Screen; icon: typeof Home; label: string }> = [
-    { screen: "dashboard", icon: Home, label: "Home" },
-    { screen: "members", icon: Users, label: "Members" },
-    { screen: "add-bill", icon: PlusCircle, label: "Add" },
-    { screen: "bills", icon: Receipt, label: "Bills" },
-    { screen: "settlement", icon: TrendingUp, label: "Settle" },
+    { screen: "dashboard", icon: Home, label: t("home") },
+    { screen: "members", icon: Users, label: t("members") },
+    { screen: "add-bill", icon: PlusCircle, label: t("add") },
+    { screen: "bills", icon: Receipt, label: t("bills") },
+    { screen: "settlement", icon: TrendingUp, label: t("settle") },
   ];
 
   return (

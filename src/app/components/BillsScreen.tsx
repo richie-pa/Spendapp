@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
+import { createTranslator } from "../lib/i18n";
 import { notifySplitCloud } from "../lib/notifications";
 import { storage } from "../lib/storage";
 import type { CospendLink, Bill, Project } from "../types/cospend";
@@ -33,7 +34,8 @@ interface BillsScreenProps {
 }
 
 export function BillsScreen({ link }: BillsScreenProps) {
-  const [bills, setBills] = useState<Bill[]>([]);
+  const t = createTranslator(storage.getLanguage());
+  const [bills, setBills] = useState<any[]>([]);
   const [project, setProject] = useState<Project | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,7 +70,7 @@ export function BillsScreen({ link }: BillsScreenProps) {
       setBills(allBills.sort((a, b) => b.timestamp - a.timestamp));
       setProject(projectData);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load movements");
+      setError(err instanceof Error ? err.message : t("failedToLoadMovements"));
     } finally {
       setLoading(false);
     }
@@ -93,20 +95,20 @@ export function BillsScreen({ link }: BillsScreenProps) {
           projectId: link.token,
           actor,
           recipients,
-          title: "🗑️ Movement deleted",
-          body: `${actor} deleted ${billToDelete.what || "a movement"} for ${currencySymbol}${Number(billToDelete.amount || 0).toFixed(2)}${
-            payer?.name ? ` paid by ${payer.name}` : ""
-          }${paidForNames ? ` for ${paidForNames}` : ""}`,
+          title: `🗑️ ${t("movementDeleted")}`,
+          body: `${actor} ${t("deleted")} ${billToDelete.what || t("untitledMovement")} for ${currencySymbol}${Number(billToDelete.amount || 0).toFixed(2)}${
+            payer?.name ? ` ${t("paidBy")} ${payer.name}` : ""
+          }${paidForNames ? ` ${t("paidFor")} ${paidForNames}` : ""}`,
         });
       } catch (notificationError) {
         console.warn("Delete notification failed", notificationError);
       }
 
-      toast.success("Movement deleted");
+      toast.success(t("movementDeleted"));
       setBillToDelete(null);
       await loadData();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete movement");
+      toast.error(err instanceof Error ? err.message : t("failedToDeleteMovement"));
     } finally {
       setDeleting(false);
     }
@@ -118,10 +120,10 @@ export function BillsScreen({ link }: BillsScreenProps) {
     try {
       const api = new CospendApi(link);
       await api.restoreBill(bill.id);
-      toast.success("Movement restored");
+      toast.success(t("movementRestored"));
       await loadData();
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to restore movement");
+      toast.error(err instanceof Error ? err.message : t("failedToRestoreMovement"));
     } finally {
       setRestoring(false);
     }
@@ -143,7 +145,7 @@ export function BillsScreen({ link }: BillsScreenProps) {
       (member) => member.id === currentMemberId
     );
 
-    return currentMember?.name || "Someone";
+    return currentMember?.name || t("someone");
   };
 
   const getPaidForMembers = (bill: Bill) => {
@@ -276,7 +278,7 @@ const getPaidForNames = (bill: Bill) => {
           <p className="text-sm font-semibold text-blue-600">Activity</p>
           <h1 className="text-3xl font-bold tracking-tight">Movements</h1>
           <p className="text-sm text-slate-500">
-            {filteredBills.length} {showDeleted ? "deleted" : "active"} movements
+            {filteredBills.length} {showDeleted ? t("deletedMovements") : t("activeMovements")}
           </p>
         </div>
 
@@ -285,7 +287,7 @@ const getPaidForNames = (bill: Bill) => {
       size="icon"
       className="shrink-0 rounded-2xl"
       onClick={() =>
-        toast.error("Restore is only available from the logged-in Cospend app")
+        toast.error(t("restoreOnlyAvailable"))
       }
     >
       <RotateCcw className="h-4 w-4 text-slate-400" />
@@ -297,7 +299,7 @@ const getPaidForNames = (bill: Bill) => {
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
 
           <Input
-            placeholder="Search movements..."
+            placeholder={t("searchMovements")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="h-12 rounded-2xl border-slate-200 bg-slate-50 pl-9"
@@ -310,7 +312,7 @@ const getPaidForNames = (bill: Bill) => {
           className="mt-3 h-11 w-full rounded-2xl"
           onClick={() => setShowDeleted(!showDeleted)}
         >
-          {showDeleted ? "Show active movements" : "Show deleted movements"}
+          {showDeleted ? t("showActiveMovements") : t("showDeletedMovements")}
         </Button>
       </div>
 
@@ -318,10 +320,10 @@ const getPaidForNames = (bill: Bill) => {
         {filteredBills.length === 0 ? (
           <div className="rounded-3xl bg-white p-8 text-center text-slate-500 shadow-sm">
             {search
-              ? "No movements match your search"
+              ? t("noMovementsMatchSearch")
               : showDeleted
-                ? "No deleted movements"
-                : "No movements yet"}
+                ? t("noDeletedMovements")
+                : t("noMovementsYet")}
           </div>
         ) : (
           filteredBills.map((bill) => {
@@ -359,15 +361,15 @@ const getPaidForNames = (bill: Bill) => {
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <p className="truncate font-semibold text-slate-900">
-                            {bill.what || "Untitled movement"}
+                            {bill.what || t("untitledMovement")}
                           </p>
 
                       <div className="mt-1 flex flex-wrap items-center gap-1 text-sm text-slate-500">
                         <span className="font-medium">
-                          {payer?.name || "Unknown"}
+                          {payer?.name || t("unknown")}
                         </span>
 
-                        <span>paid for</span>
+                        <span>{t("paidFor")}</span>
 
                         {paidForNames
                           .split(",")
@@ -412,7 +414,7 @@ const getPaidForNames = (bill: Bill) => {
                         {isPaidBack && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700">
                             <CheckCircle2 className="h-3.5 w-3.5" />
-                            Paid Back
+                            {t("paidBack")}
                           </span>
                         )}
 
@@ -424,7 +426,7 @@ const getPaidForNames = (bill: Bill) => {
 
                         {bill.deleted && (
                           <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-semibold text-red-700">
-                            Deleted
+                            {t("deleted")}
                           </span>
                         )}
                       </div>
@@ -454,16 +456,16 @@ const getPaidForNames = (bill: Bill) => {
       >
         <AlertDialogContent className="rounded-3xl">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete movement?</AlertDialogTitle>
+            <AlertDialogTitle>{t("deleteMovementTitle")}</AlertDialogTitle>
 
             <AlertDialogDescription>
-              This movement will be moved to deleted movements. You can restore it later.
+              {t("deleteMovementDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
 
           <AlertDialogFooter>
             <AlertDialogCancel className="rounded-2xl">
-              Cancel
+              {t("cancel")}
             </AlertDialogCancel>
 
             <AlertDialogAction
@@ -471,7 +473,7 @@ const getPaidForNames = (bill: Bill) => {
               disabled={deleting}
               className="rounded-2xl bg-red-600 hover:bg-red-700"
             >
-              {deleting ? "Deleting..." : "Delete"}
+              {deleting ? t("deleting") : t("delete")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
