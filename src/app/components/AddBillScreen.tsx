@@ -719,13 +719,14 @@ const handleSubmit = async (e: React.FormEvent) => {
                       {customSplit && isSelected ? (
                         <div className="flex items-center gap-2">
                          <Input
-                              type="text"
-                              inputMode="decimal"
-                              placeholder="0.00"
-                              value={memberAmounts[member.id] || ""}
-                              onChange={(e) => updateMemberAmount(member.id, e.target.value)}
-                              className="h-12 w-24 rounded-2xl bg-white text-right"
-                            />
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            value={memberAmounts[member.id] || ""}
+                            onChange={(e) => updateMemberAmount(member.id, e.target.value)}
+                            className="h-12 w-24 rounded-2xl bg-white text-right"
+                            inputMode="decimal"
+                          />
                           <span className="text-sm font-medium text-slate-500">{currencySymbol}</span>
                         </div>
                       ) : null}
