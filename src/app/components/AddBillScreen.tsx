@@ -20,6 +20,22 @@ interface AddBillScreenProps {
   onBillAdded: () => void;
 }
 
+const normalizeDecimalInput = (value: string) => {
+  const normalized = value.replace(/,/g, ".").replace(/[^\d.]/g, "");
+  const parts = normalized.split(".");
+
+  if (parts.length <= 2) {
+    return normalized;
+  }
+
+  return `${parts[0]}.${parts.slice(1).join("")}`;
+};
+
+const parseDecimalInput = (value: string) => {
+  const parsed = parseFloat(normalizeDecimalInput(value));
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const t = createTranslator(storage.getLanguage());
   const [project, setProject] = useState<Project | null>(null);
@@ -49,9 +65,9 @@ export function AddBillScreen({ link, onBillAdded }: AddBillScreenProps) {
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
   const selectedMemberList = activeMembers.filter((m) => selectedMembers.has(m.id));
-  const totalAmount = parseFloat(amount || "0");
+  const totalAmount = parseDecimalInput(amount);
   const customTotal = selectedMemberList.reduce(
-    (sum, m) => sum + parseFloat(memberAmounts[m.id] || "0"),
+    (sum, m) => sum + parseDecimalInput(memberAmounts[m.id] || ""),
     0
   );
   const remaining = totalAmount - customTotal;
@@ -130,13 +146,13 @@ const handleSubmit = async (e: React.FormEvent) => {
     return;
   }
 
-  if (!amount || parseFloat(amount) <= 0) {
+  if (parseDecimalInput(amount) <= 0) {
     toast.error(t("pleaseEnterValidAmount"));
     return;
   }
 
   const payerId = parseInt(payer, 10);
-  const numericAmount = parseFloat(amount);
+  const numericAmount = parseDecimalInput(amount);
 
   setSubmitting(true);
   setError("");
@@ -213,7 +229,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
     if (customSplit) {
       const totalCustom = participants.reduce(
-        (sum, member) => sum + parseFloat(memberAmounts[member.id] || "0"),
+        (sum, member) => sum + parseDecimalInput(memberAmounts[member.id] || ""),
         0
       );
 
@@ -224,7 +240,7 @@ const handleSubmit = async (e: React.FormEvent) => {
       }
 
       for (const member of participants) {
-        const share = parseFloat(memberAmounts[member.id] || "0");
+        const share = parseDecimalInput(memberAmounts[member.id] || "");
 
         if (share <= 0) {
           continue;
@@ -314,7 +330,7 @@ const handleSubmit = async (e: React.FormEvent) => {
   const updateMemberAmount = (memberId: number, value: string) => {
     setMemberAmounts((prev) => ({
       ...prev,
-      [memberId]: value,
+      [memberId]: normalizeDecimalInput(value),
     }));
   };
 
@@ -718,7 +734,7 @@ const handleSubmit = async (e: React.FormEvent) => {
 
                       {customSplit && isSelected ? (
                         <div className="flex items-center gap-2">
-                         <Input
+                          <Input
                             type="number"
                             step="0.01"
                             placeholder="0.00"
