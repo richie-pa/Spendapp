@@ -85,7 +85,21 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const currencySymbol = project?.currencyname || "€";
 
   const getBillDate = (bill: Bill) => {
-    return new Date(Number(bill.timestamp) * 1000);
+    const timestamp = Number(bill.timestamp);
+
+    if (Number.isFinite(timestamp) && timestamp > 0) {
+      return new Date(timestamp * 1000);
+    }
+
+    if (bill.date) {
+      const parsedDate = new Date(bill.date);
+
+      if (!Number.isNaN(parsedDate.getTime())) {
+        return parsedDate;
+      }
+    }
+
+    return null;
   };
 
   const getMonthKey = (date: Date) => {
@@ -109,7 +123,12 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const currentMonthKey = getMonthKey(new Date());
 
   const availableMonthKeys = useMemo(() => {
-    const keys = new Set(bills.map((bill) => getMonthKey(getBillDate(bill))));
+    const keys = new Set(
+      bills
+        .map((bill) => getBillDate(bill))
+        .filter((date): date is Date => date instanceof Date && !Number.isNaN(date.getTime()))
+        .map((date) => getMonthKey(date))
+    );
 
     keys.add(currentMonthKey);
 
@@ -130,7 +149,15 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const filteredBills =
     selectedMonth === ALL_TIME_FILTER
       ? bills
-      : bills.filter((bill) => getMonthKey(getBillDate(bill)) === selectedMonth);
+      : bills.filter((bill) => {
+          const billDate = getBillDate(bill);
+
+          if (!billDate) {
+            return false;
+          }
+
+          return getMonthKey(billDate) === selectedMonth;
+        });
 
   const money = (value: number) => {
     return `${currencySymbol}${Number(value || 0).toFixed(2)}`;
