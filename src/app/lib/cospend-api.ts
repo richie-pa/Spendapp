@@ -63,13 +63,31 @@ export class CospendApi {
   }
 
   async getBills(deleted = false): Promise<Bill[]> {
-    const response = await CapacitorHttp.get({
-      url: `${this.getBaseUrl()}/bills?offset=0&limit=100&reverse=true&deleted=${deleted ? 1 : 0}`,
-      headers: this.getHeaders(),
-    });
+    const limit = 100;
+    let offset = 0;
+    const allBills: Bill[] = [];
 
-    const data = response.data;
-    return data.ocs?.data?.bills || data.bills || [];
+    while (true) {
+      const response = await CapacitorHttp.get({
+        url: `${this.getBaseUrl()}/bills?offset=${offset}&limit=${limit}&reverse=true&deleted=${
+          deleted ? 1 : 0
+        }`,
+        headers: this.getHeaders(),
+      });
+
+      const data = response.data;
+      const bills = data.ocs?.data?.bills || data.bills || [];
+
+      allBills.push(...bills);
+
+      if (bills.length < limit) {
+        break;
+      }
+
+      offset += limit;
+    }
+
+    return allBills;
   }
 
   async getStatistics(): Promise<Statistics> {
