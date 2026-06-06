@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
 import { createTranslator } from "../lib/i18n";
 import { storage } from "../lib/storage";
@@ -122,18 +122,21 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
   const currentMonthKey = getMonthKey(new Date());
 
-  const availableMonthKeys = useMemo(() => {
+  const availableMonthKeys = (() => {
     const keys = new Set(
       bills
         .map((bill) => getBillDate(bill))
-        .filter((date): date is Date => date instanceof Date && !Number.isNaN(date.getTime()))
+        .filter(
+          (date): date is Date =>
+            date instanceof Date && !Number.isNaN(date.getTime())
+        )
         .map((date) => getMonthKey(date))
     );
 
     keys.add(currentMonthKey);
 
     return [...keys].sort((a, b) => b.localeCompare(a));
-  }, [bills, currentMonthKey]);
+  })();
 
   const monthFilters = [
     {
