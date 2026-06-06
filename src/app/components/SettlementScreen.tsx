@@ -29,7 +29,6 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedMonth, setSelectedMonth] = useState<string>("all");
 
   useEffect(() => {
     loadData();
@@ -160,17 +159,6 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const normalBills = bills.filter((bill) => !isPaidBackBill(bill));
   const paidBackBills = bills.filter((bill) => isPaidBackBill(bill));
 
-  const getMonthKey = (ts: number) => {
-    const d = new Date(ts * 1000);
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    return `${y}-${m}`;
-  };
-
-  const availableMonths = Array.from(
-    new Set(bills.map((b) => getMonthKey(b.timestamp)))
-  ).sort((a, b) => (a < b ? 1 : -1));
-
   const getMemberPaid = (memberId: number) => {
     return normalBills
       .filter((bill) => getPayerId(bill) === memberId)
@@ -240,97 +228,6 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
     };
   });
 
-  const computeBalancesFromBills = (filterBills: Bill[]) => {
-    const balances: Record<number, number> = {};
-
-    activeMembers.forEach((m) => {
-      balances[m.id] = 0;
-    });
-
-    const normal = filterBills.filter((b) => !isPaidBackBill(b));
-    const paidBack = filterBills.filter((b) => isPaidBackBill(b));
-
-    normal.forEach((b) => {
-      const payer = getPayerId(b);
-      const ids = getPaidForIds(b);
-      const amount = Number(b.amount || 0);
-
-      balances[payer] = (balances[payer] || 0) + amount;
-
-      if (ids.length > 0) {
-        const share = Math.round((amount / ids.length) * 100) / 100;
-        ids.forEach((id) => {
-          balances[id] = (balances[id] || 0) - share;
-        });
-      }
-    });
-
-    paidBack.forEach((b) => {
-      const payer = getPayerId(b);
-      const ids = getPaidForIds(b);
-      const amount = Number(b.amount || 0);
-
-      ids.forEach((id) => {
-        balances[id] = (balances[id] || 0) + amount;
-      });
-
-      balances[payer] = (balances[payer] || 0) - amount;
-    });
-
-    Object.keys(balances).forEach((k) => {
-      balances[Number(k)] = Math.round((balances[Number(k)] || 0) * 100) / 100;
-    });
-
-    return balances;
-  };
-
-  const settleBalances = (balances: Record<number, number>) => {
-    const creditors = Object.entries(balances)
-      .filter(([, v]) => v > 0.005)
-      .map(([id, v]) => ({ id: Number(id), amount: Math.round(v * 100) / 100 }))
-      .sort((a, b) => b.amount - a.amount);
-
-    let debtors = Object.entries(balances)
-      .filter(([, v]) => v < -0.005)
-      .map(([id, v]) => ({ id: Number(id), amount: Math.round(Math.abs(v) * 100) / 100 }))
-      .sort((a, b) => b.amount - a.amount);
-
-    const txs: Array<{ from: number; to: number; amount: number }> = [];
-
-    let i = 0;
-    let j = 0;
-
-    while (i < creditors.length && j < debtors.length) {
-      const c = creditors[i];
-      const d = debtors[j];
-      const amt = Math.min(c.amount, d.amount);
-
-      if (amt > 0) {
-        txs.push({ from: d.id, to: c.id, amount: Math.round(amt * 100) / 100 });
-      }
-
-      c.amount -= amt;
-      d.amount -= amt;
-
-      if (c.amount <= 0.005) i++;
-      if (d.amount <= 0.005) j++;
-    }
-
-    return txs;
-  };
-
-  const displayedTransactions = (() => {
-    if (selectedMonth === "all") {
-      return settlement?.transactions || [];
-    }
-
-    const monthKey = selectedMonth;
-    const monthBills = bills.filter((b) => getMonthKey(b.timestamp) === monthKey);
-    const balances = computeBalancesFromBills(monthBills);
-
-    return settleBalances(balances);
-  })();
-
   const mostAdvanced = [...memberSummaries].sort(
     (a, b) => b.balance - a.balance
   )[0];
@@ -361,20 +258,6 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         >
           <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
         </Button>
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedMonth}
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="rounded-2xl border border-slate-200 bg-white/90 px-3 py-2 text-sm"
-          >
-            <option value="all">{t("all") || "All"}</option>
-            {availableMonths.map((m) => (
-              <option key={m} value={m}>
-                {m}
-              </option>
-            ))}
-          </select>
-        </div>
       </div>
 
       {memberSummaries.length > 0 && (
@@ -524,9 +407,9 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         </CardHeader>
 
         <CardContent>
-          {displayedTransactions && displayedTransactions.length > 0 ? (
+          {settlement?.transactions && settlement.transactions.length > 0 ? (
             <div className="space-y-3">
-              {displayedTransactions.map((tx: any, index) => (
+              {settlement.transactions.map((tx: any, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between rounded-3xl border border-orange-100 bg-orange-50 p-4"
