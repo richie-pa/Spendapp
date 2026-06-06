@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CospendApi } from "../lib/cospend-api";
 import { createTranslator } from "../lib/i18n";
 import { storage } from "../lib/storage";
@@ -22,6 +22,8 @@ interface SettlementScreenProps {
   link: CospendLink;
 }
 
+const ALL_TIME_FILTER = "all";
+
 export function SettlementScreen({ link }: SettlementScreenProps) {
   const t = createTranslator(storage.getLanguage());
   const [settlement, setSettlement] = useState<Settlement | null>(null);
@@ -29,6 +31,7 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   const [bills, setBills] = useState<Bill[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selectedMonth, setSelectedMonth] = useState(ALL_TIME_FILTER);
 
   useEffect(() => {
     loadData();
@@ -80,6 +83,54 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
 
   const activeMembers = project?.members?.filter((m) => m.activated) || [];
   const currencySymbol = project?.currencyname || "€";
+
+  const getBillDate = (bill: Bill) => {
+    return new Date(Number(bill.timestamp) * 1000);
+  };
+
+  const getMonthKey = (date: Date) => {
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}`;
+  };
+
+  const formatMonthLabel = (monthKey: string) => {
+    const [year, month] = monthKey.split("-").map(Number);
+    const date = new Date(year, month - 1, 1);
+    const label = new Intl.DateTimeFormat(storage.getLanguage(), {
+      month: "short",
+      year: "numeric",
+    }).format(date);
+
+    return label.replace(/\./g, "").replace(/\s+/g, " ").trim();
+  };
+
+  const currentMonthKey = getMonthKey(new Date());
+
+  const availableMonthKeys = useMemo(() => {
+    const keys = new Set(bills.map((bill) => getMonthKey(getBillDate(bill))));
+
+    keys.add(currentMonthKey);
+
+    return [...keys].sort((a, b) => b.localeCompare(a));
+  }, [bills, currentMonthKey]);
+
+  const monthFilters = [
+    {
+      key: ALL_TIME_FILTER,
+      label: t("allTime"),
+    },
+    ...availableMonthKeys.map((monthKey) => ({
+      key: monthKey,
+      label: formatMonthLabel(monthKey),
+    })),
+  ];
+
+  const filteredBills =
+    selectedMonth === ALL_TIME_FILTER
+      ? bills
+      : bills.filter((bill) => getMonthKey(getBillDate(bill)) === selectedMonth);
 
   const money = (value: number) => {
     return `${currencySymbol}${Number(value || 0).toFixed(2)}`;
@@ -156,8 +207,8 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
       .filter(Boolean);
   };
 
-  const normalBills = bills.filter((bill) => !isPaidBackBill(bill));
-  const paidBackBills = bills.filter((bill) => isPaidBackBill(bill));
+  const normalBills = filteredBills.filter((bill) => !isPaidBackBill(bill));
+  const paidBackBills = filteredBills.filter((bill) => isPaidBackBill(bill));
 
   const getMemberPaid = (memberId: number) => {
     return normalBills
@@ -196,11 +247,13 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
   };
 
   const getSettlementBalance = (memberId: number) => {
-    const balances = settlement?.balances || (project as any)?.balance || {};
-    const value = (balances as any)[memberId];
+    if (selectedMonth === ALL_TIME_FILTER) {
+      const balances = settlement?.balances || (project as any)?.balance || {};
+      const value = (balances as any)[memberId];
 
-    if (value !== undefined && value !== null) {
-      return Number(value);
+      if (value !== undefined && value !== null) {
+        return Number(value);
+      }
     }
 
     const paid = getMemberPaid(memberId);
@@ -236,6 +289,60 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
     (a, b) => a.balance - b.balance
   )[0];
 
+  const settlementTransactions = (() => {
+    if (selectedMonth === ALL_TIME_FILTER && settlement?.transactions?.length) {
+      return settlement.transactions;
+    }
+
+    const creditors = memberSummaries
+      .filter(({ balance }) => balance > 0)
+      .map(({ member, balance }) => ({
+        member,
+        balance,
+      }))
+      .sort((a, b) => b.balance - a.balance);
+
+    const debtors = memberSummaries
+      .filter(({ balance }) => balance < 0)
+      .map(({ member, balance }) => ({
+        member,
+        balance: Math.abs(balance),
+      }))
+      .sort((a, b) => b.balance - a.balance);
+
+    const transactions: Array<{ from: number; to: number; amount: number }> = [];
+    let creditorIndex = 0;
+    let debtorIndex = 0;
+
+    while (creditorIndex < creditors.length && debtorIndex < debtors.length) {
+      const creditor = creditors[creditorIndex];
+      const debtor = debtors[debtorIndex];
+      const amount = Math.min(creditor.balance, debtor.balance);
+      const roundedAmount = Math.round(amount * 100) / 100;
+
+      if (roundedAmount > 0) {
+        transactions.push({
+          from: debtor.member.id,
+          to: creditor.member.id,
+          amount: roundedAmount,
+        });
+      }
+
+      creditor.balance = Math.round((creditor.balance - roundedAmount) * 100) / 100;
+      debtor.balance = Math.round((debtor.balance - roundedAmount) * 100) / 100;
+
+      if (creditor.balance <= 0.01) {
+        creditorIndex += 1;
+      }
+
+      if (debtor.balance <= 0.01) {
+        debtorIndex += 1;
+      }
+    }
+
+    return transactions;
+  })();
+
   return (
     <div className="space-y-6 px-4 pt-5 pb-[calc(10rem+env(safe-area-inset-bottom))]">
       <div className="flex items-start justify-between gap-2">
@@ -258,6 +365,30 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         >
           <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
         </Button>
+      </div>
+
+      <div className="-mx-4 overflow-x-auto px-4 pb-1">
+        <div className="flex gap-2 whitespace-nowrap">
+          {monthFilters.map((filter) => {
+            const isActive = selectedMonth === filter.key;
+
+            return (
+              <Button
+                key={filter.key}
+                type="button"
+                variant={isActive ? "default" : "outline"}
+                onClick={() => setSelectedMonth(filter.key)}
+                className={`shrink-0 rounded-full px-4 text-sm font-semibold transition ${
+                  isActive
+                    ? "bg-blue-600 text-white shadow-sm hover:bg-blue-600"
+                    : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                }`}
+              >
+                {filter.label}
+              </Button>
+            );
+          })}
+        </div>
       </div>
 
       {memberSummaries.length > 0 && (
@@ -336,11 +467,11 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
                     </div>
 
                     <div className="shrink-0 text-right">
-                    <p
-                      className={`whitespace-nowrap text-lg font-bold ${
-                        isPositive ? "text-emerald-600" : "text-red-500"
-                      }`}
-                    >
+                      <p
+                        className={`whitespace-nowrap text-lg font-bold ${
+                          isPositive ? "text-emerald-600" : "text-red-500"
+                        }`}
+                      >
                         {isPositive ? "+" : ""}
                         {money(balance)}
                       </p>
@@ -407,9 +538,9 @@ export function SettlementScreen({ link }: SettlementScreenProps) {
         </CardHeader>
 
         <CardContent>
-          {settlement?.transactions && settlement.transactions.length > 0 ? (
+          {settlementTransactions.length > 0 ? (
             <div className="space-y-3">
-              {settlement.transactions.map((tx: any, index) => (
+              {settlementTransactions.map((tx, index) => (
                 <div
                   key={index}
                   className="flex items-center justify-between rounded-3xl border border-orange-100 bg-orange-50 p-4"

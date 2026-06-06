@@ -62,6 +62,7 @@ export interface Statistics {
 }
 
 export interface Settlement {
+  balances?: Record<number, number>;
   transactions: Array<{
     from: number;
     to: number;
